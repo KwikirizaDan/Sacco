@@ -1,0 +1,226 @@
+"use client"
+
+import { useState } from "react"
+import {
+  ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  getSortedRowModel,
+  getPaginationRowModel,
+  SortingState,
+  useReactTable,
+} from "@tanstack/react-table"
+import { DataTablePagination } from "@/components/ui/data-table-pagination"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
+  MoreHorizontal,
+  Eye,
+  Download,
+  Trash2,
+  ExternalLink,
+  FileText,
+} from "lucide-react"
+import { formatDate } from "@/lib/utils/format"
+import { Badge } from "@/components/ui/badge"
+import { deleteDocumentAction } from "../actions"
+import { toast } from "sonner"
+import { PreviewDialog } from "./preview-dialog"
+import { typeLabels, typeColors } from "./documents-client"
+
+export function DocumentsTable({ documents }: { documents: any[] }) {
+  const [previewDoc, setPreviewDoc] = useState<any>(null)
+  const [deleteDoc, setDeleteDoc] = useState<any>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [sorting, setSorting] = useState<SortingState>([])
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+  })
+
+  const handleDelete = async () => {
+    if (!deleteDoc) return
+    setDeleting(true)
+    const res = await deleteDocumentAction(deleteDoc.id, deleteDoc.blob_url)
+    setDeleting(false)
+    if (res.success) {
+      toast.success("Document deleted")
+      setDeleteDoc(null)
+    } else {
+      toast.error(res.error)
+    }
+  }
+
+  const table = useReactTable({
+    data: documents,
+    columns: [],
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    onSortingChange: setSorting,
+    onPaginationChange: setPagination,
+    state: {
+      sorting,
+      pagination,
+    },
+  })
+
+  return (
+    <>
+      <div className="rounded-lg border overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/50">
+              <TableHead>File</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Member</TableHead>
+              <TableHead>Uploaded</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows.map((row) => {
+              const doc = row.original
+              const isImage = /\.(jpg|jpeg|png|webp)$/i.test(doc.file_name ?? "")
+              return (
+                <TableRow
+                  key={doc.id}
+                  className="hover:bg-muted/30 cursor-pointer"
+                  onClick={() => setPreviewDoc(doc)}
+                >
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-lg border bg-muted overflow-hidden flex items-center justify-center shrink-0">
+                        {isImage ? (
+                          <img
+                            src={doc.blob_url}
+                            alt={doc.file_name}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <FileText className="h-5 w-5 text-muted-foreground opacity-60" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium truncate max-w-[200px]">
+                          {doc.file_name}
+                        </p>
+                        <p className="text-xs text-muted-foreground uppercase">
+                          {doc.file_name?.split(".").pop()}
+                        </p>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={doc.type === "loan_agreement" ? "default" : doc.type === "member_document" ? "secondary" : "outline"}>
+                      {typeLabels[doc.type] ?? doc.type}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div>
+                      <p className="text-sm font-medium">{doc.member_name}</p>
+                      <p className="text-xs text-muted-foreground font-mono">
+                        {doc.member_code}
+                      </p>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {formatDate(doc.created_at)}
+                  </TableCell>
+                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger>
+                        <Button variant="ghost" size="icon">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-44">
+                        <DropdownMenuItem onClick={() => setPreviewDoc(doc)}>
+                          <Eye className="mr-2 h-4 w-4" />
+                          Preview
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => window.open(doc.blob_url, "_blank")}>
+                          <Download className="mr-2 h-4 w-4" />
+                          Download
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => window.open(doc.blob_url, "_blank")}>
+                          <ExternalLink className="mr-2 h-4 w-4" />
+                          Open in New Tab
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => setDeleteDoc(doc)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
+      </div>
+
+      <DataTablePagination table={table} />
+
+      {previewDoc && (
+        <PreviewDialog
+          doc={previewDoc}
+          open={!!previewDoc}
+          onClose={() => setPreviewDoc(null)}
+        />
+      )}
+
+      <AlertDialog open={!!deleteDoc} onOpenChange={() => setDeleteDoc(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Document?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete{" "}
+              <strong>{deleteDoc?.file_name}</strong> from storage.
+              This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  )
+}

@@ -1,0 +1,39 @@
+import { NextRequest, NextResponse } from "next/server"
+import { getLoanById } from "@/db/queries/loans"
+import { getAllMembers } from "@/db/queries/members"
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const loan = await getLoanById(id)
+
+    if (!loan) {
+      return NextResponse.json({ error: "Loan not found" }, { status: 404 })
+    }
+
+    // Enrich with member data
+    const members = await getAllMembers()
+    const member = members.find((m) => m.id === loan.member_id)
+
+    const loanWithMember = {
+      ...loan,
+      member_name: member?.full_name || "Unknown",
+      member_code: member?.member_code || "N/A",
+      member_phone: member?.phone,
+      member_email: member?.email,
+      member_national_id: member?.national_id,
+      member_address: member?.address,
+    }
+
+    return NextResponse.json(loanWithMember)
+  } catch (error) {
+    console.error("Error fetching loan:", error)
+    return NextResponse.json(
+      { error: "Failed to fetch loan" },
+      { status: 500 }
+    )
+  }
+}

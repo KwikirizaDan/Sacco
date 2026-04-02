@@ -1,0 +1,388 @@
+"use client"
+
+import { useState, useMemo } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  MessageSquare,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  Plus,
+  Search,
+  SlidersHorizontal,
+  Inbox,
+  ChevronsLeft,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsRight,
+} from "lucide-react"
+import { AddComplaintDialog } from "./add-complaint-dialog"
+import { ComplaintCard } from "./complaint-card"
+
+interface ComplaintsClientProps {
+  complaints: any[]
+  members: any[]
+  stats: {
+    total: number
+    open: number
+    inProgress: number
+    resolved: number
+  }
+}
+
+export const priorityColors: Record<string, string> = {
+  low: "bg-gray-100 text-gray-600 dark:bg-gray-900/30 dark:text-gray-400",
+  normal: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+  high: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+  urgent: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+}
+
+export const statusColors: Record<string, string> = {
+  open: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
+  in_progress: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+  resolved: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+}
+
+export const categoryLabels: Record<string, string> = {
+  general: "General",
+  loan: "Loan",
+  savings: "Savings",
+  service: "Service",
+  technical: "Technical",
+  other: "Other",
+}
+
+export const categoryColors: Record<string, string> = {
+  general: "bg-gray-100 text-gray-600 dark:bg-gray-900/30 dark:text-gray-400",
+  loan: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+  savings: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+  service: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+  technical: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+  other: "bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400",
+}
+
+export function ComplaintsClient({
+  complaints,
+  members,
+  stats,
+}: ComplaintsClientProps) {
+  const [addOpen, setAddOpen] = useState(false)
+  const [search, setSearch] = useState("")
+  const [statusFilter, setStatusFilter] = useState<string | null>("all")
+  const [priorityFilter, setPriorityFilter] = useState<string | null>("all")
+  const [categoryFilter, setCategoryFilter] = useState<string | null>("all")
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+
+  const filtered = useMemo(() => {
+    return complaints.filter((c) => {
+      const matchSearch =
+        c.subject?.toLowerCase().includes(search.toLowerCase()) ||
+        c.member_name?.toLowerCase().includes(search.toLowerCase()) ||
+        c.complaint_ref?.toLowerCase().includes(search.toLowerCase()) ||
+        c.body?.toLowerCase().includes(search.toLowerCase())
+      const matchStatus = statusFilter === "all" || c.status === statusFilter
+      const matchPriority = priorityFilter === "all" || c.priority === priorityFilter
+      const matchCategory = categoryFilter === "all" || c.category === categoryFilter
+      return matchSearch && matchStatus && matchPriority && matchCategory
+    })
+  }, [complaints, search, statusFilter, priorityFilter, categoryFilter])
+
+  const totalPages = Math.ceil(filtered.length / pageSize)
+  const paginated = useMemo(() => {
+    const start = (page - 1) * pageSize
+    return filtered.slice(start, start + pageSize)
+  }, [filtered, page, pageSize])
+
+  // Reset to page 1 when filters change
+  useMemo(() => {
+    setPage(1)
+  }, [search, statusFilter, priorityFilter, categoryFilter])
+
+  const kpiCards = [
+    {
+      label: "Total",
+      value: stats.total,
+      icon: MessageSquare,
+      color: "text-blue-500",
+      bg: "bg-blue-500/10",
+      border: "border-l-blue-500",
+      filter: "all",
+    },
+    {
+      label: "Open",
+      value: stats.open,
+      icon: Inbox,
+      color: "text-yellow-500",
+      bg: "bg-yellow-500/10",
+      border: "border-l-yellow-500",
+      filter: "open",
+    },
+    {
+      label: "In Progress",
+      value: stats.inProgress,
+      icon: Clock,
+      color: "text-blue-500",
+      bg: "bg-blue-500/10",
+      border: "border-l-blue-500",
+      filter: "in_progress",
+    },
+    {
+      label: "Resolved",
+      value: stats.resolved,
+      icon: CheckCircle,
+      color: "text-green-500",
+      bg: "bg-green-500/10",
+      border: "border-l-green-500",
+      filter: "resolved",
+    },
+  ]
+
+  return (
+    <div className="space-y-6">
+
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Complaints & Issues</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Track and resolve member complaints
+          </p>
+        </div>
+        <Button onClick={() => setAddOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          New Complaint
+        </Button>
+      </div>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {kpiCards.map((card) => (
+          <div
+            key={card.label}
+            className={`relative bg-card border border-border rounded overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 group cursor-pointer ${statusFilter === card.filter ? "ring-2 ring-primary" : ""}`}
+            onClick={() => setStatusFilter(statusFilter === card.filter ? "all" : card.filter)}
+          >
+            {/* Left accent bar */}
+            <div
+              className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-2xl"
+              style={{ background: card.color.replace("text-", "").replace("-500", "") === "blue" ? "#3b82f6" : card.color.replace("text-", "").replace("-500", "") === "yellow" ? "#eab308" : card.color.replace("text-", "").replace("-500", "") === "green" ? "#10b981" : "#6b7280" }}
+            />
+
+            {/* Subtle tinted background on hover */}
+            <div
+              className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-2xl"
+              style={{ background: `radial-gradient(ellipse at top left, ${card.color.replace("text-", "").replace("-500", "") === "blue" ? "#3b82f6" : card.color.replace("text-", "").replace("-500", "") === "yellow" ? "#eab308" : card.color.replace("text-", "").replace("-500", "") === "green" ? "#10b981" : "#6b7280"}08, transparent 70%)` }}
+            />
+
+            <div className="relative px-5 pt-4 pb-4">
+              {/* Top row: title + icon */}
+              <div className="flex items-start justify-between mb-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest leading-none">
+                  {card.label}
+                </p>
+                <div
+                  className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                  style={{ background: `${card.color.replace("text-", "").replace("-500", "") === "blue" ? "#3b82f6" : card.color.replace("text-", "").replace("-500", "") === "yellow" ? "#eab308" : card.color.replace("text-", "").replace("-500", "") === "green" ? "#10b981" : "#6b7280"}18` }}
+                >
+                  <card.icon
+                    className="h-4 w-4"
+                    style={{ color: card.color.replace("text-", "").replace("-500", "") === "blue" ? "#3b82f6" : card.color.replace("text-", "").replace("-500", "") === "yellow" ? "#eab308" : card.color.replace("text-", "").replace("-500", "") === "green" ? "#10b981" : "#6b7280" }}
+                  />
+                </div>
+              </div>
+
+              {/* Value */}
+              <p className="text-[1.6rem] font-bold text-foreground tracking-tight leading-none mb-3 tabular-nums">
+                {card.value}
+              </p>
+            </div>
+
+            {/* Bottom accent line */}
+            <div
+              className="absolute bottom-0 left-3 right-3 h-px opacity-20"
+              style={{ background: `linear-gradient(to right, transparent, ${card.color.replace("text-", "").replace("-500", "") === "blue" ? "#3b82f6" : card.color.replace("text-", "").replace("-500", "") === "yellow" ? "#eab308" : card.color.replace("text-", "").replace("-500", "") === "green" ? "#10b981" : "#6b7280"}, transparent)` }}
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* Toolbar */}
+      <div className="flex items-center gap-3">
+        <div className="relative w-full">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search complaints, members, refs..."
+            className="pl-9"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+
+        <div className="flex items-center gap-2 ml-auto">
+          <SlidersHorizontal className="h-4 w-4 text-muted-foreground shrink-0" />
+
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="open">Open</SelectItem>
+              <SelectItem value="in_progress">In Progress</SelectItem>
+              <SelectItem value="resolved">Resolved</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Priority" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="low">Low</SelectItem>
+              <SelectItem value="normal">Normal</SelectItem>
+              <SelectItem value="high">High</SelectItem>
+              <SelectItem value="urgent">Urgent</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="general">General</SelectItem>
+              <SelectItem value="loan">Loan</SelectItem>
+              <SelectItem value="savings">Savings</SelectItem>
+              <SelectItem value="service">Service</SelectItem>
+              <SelectItem value="technical">Technical</SelectItem>
+              <SelectItem value="other">Other</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Results count */}
+      <p className="text-sm text-muted-foreground">
+        Showing {paginated.length} of {filtered.length} complaints
+      </p>
+
+      {/* Empty State */}
+      {filtered.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-20 text-muted-foreground border rounded-lg">
+          <MessageSquare className="h-12 w-12 mb-3 opacity-30" />
+          <p className="text-lg font-medium">No complaints found</p>
+          <p className="text-sm mt-1">
+            {search || statusFilter !== "all"
+              ? "Try adjusting your filters"
+              : "No complaints have been submitted yet"}
+          </p>
+          {!search && statusFilter === "all" && (
+            <Button className="mt-4" onClick={() => setAddOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add First Complaint
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* Complaints Grid */}
+      {paginated.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+          {paginated.map((complaint) => (
+            <ComplaintCard key={complaint.id} complaint={complaint} />
+          ))}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {filtered.length > 0 && (
+        <div className="flex items-center justify-between px-2 py-4">
+          <div className="flex-1 text-sm text-muted-foreground">
+            Showing <strong>{(page - 1) * pageSize + 1}</strong> - <strong>{Math.min(page * pageSize, filtered.length)}</strong> of <strong>{filtered.length}</strong> results
+          </div>
+          <div className="flex items-center space-x-6 lg:space-x-8">
+            <div className="flex items-center space-x-2">
+              <Select
+                value={`${pageSize}`}
+                onValueChange={(value) => {
+                  setPageSize(Number(value))
+                  setPage(1)
+                }}
+              >
+                <SelectTrigger className="h-8 w-full">
+                  <SelectValue placeholder={pageSize} />
+                </SelectTrigger>
+                <SelectContent side="top">
+                  {[10, 20, 30, 40].map((size) => (
+                    <SelectItem key={size} value={`${size}`}>
+                      {size}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex w-[100px] items-center justify-center text-sm font-medium">
+              Page {page} of {totalPages}
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                className="hidden h-8 w-8 p-0 lg:flex"
+                onClick={() => setPage(1)}
+                disabled={page === 1}
+              >
+                <span className="sr-only">Go to first page</span>
+                <ChevronsLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                className="h-8 w-8 p-0"
+                onClick={() => setPage(page - 1)}
+                disabled={page === 1}
+              >
+                <span className="sr-only">Go to previous page</span>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                className="h-8 w-8 p-0"
+                onClick={() => setPage(page + 1)}
+                disabled={page === totalPages}
+              >
+                <span className="sr-only">Go to next page</span>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                className="hidden h-8 w-8 p-0 lg:flex"
+                onClick={() => setPage(totalPages)}
+                disabled={page === totalPages}
+              >
+                <span className="sr-only">Go to last page</span>
+                <ChevronsRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <AddComplaintDialog
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        members={members}
+      />
+    </div>
+  )
+}

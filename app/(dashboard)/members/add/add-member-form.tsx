@@ -1,0 +1,335 @@
+"use client"
+
+import { useActionState, useState, useRef, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import Image from "next/image"
+import { useDropzone } from "react-dropzone"
+import { toast } from "sonner"
+import { addMemberAction, MemberFormState } from "@/app/(dashboard)/members/actions"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Camera, Loader2, ArrowLeft, User, Upload } from "lucide-react"
+
+const initialState: MemberFormState = {}
+
+function SectionHeader({
+  step,
+  title,
+  description,
+}: {
+  step: number
+  title: string
+  description?: string
+}) {
+  return (
+    <div className="flex items-start gap-4 mb-6">
+      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground text-xs font-semibold flex items-center justify-center tracking-wide mt-0.5">
+        {step}
+      </div>
+      <div>
+        <h3 className="text-sm font-semibold text-foreground uppercase tracking-widest">
+          {title}
+        </h3>
+        {description && (
+          <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function FieldGroup({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
+      {children}
+    </div>
+  )
+}
+
+function Field({
+  id,
+  label,
+  required,
+  error,
+  span,
+  children,
+}: {
+  id: string
+  label: string
+  required?: boolean
+  error?: string
+  span?: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <div className={`flex flex-col gap-1.5 ${span ? "sm:col-span-2" : ""}`}>
+      <label
+        htmlFor={id}
+        className="text-xs font-medium text-muted-foreground uppercase tracking-widest"
+      >
+        {label}
+        {required && <span className="text-destructive ml-1">*</span>}
+      </label>
+      {children}
+      {error && (
+        <p className="text-xs text-destructive flex items-center gap-1 mt-0.5">
+          <span className="inline-block w-1 h-1 rounded-full bg-destructive" />
+          {error}
+        </p>
+      )}
+    </div>
+  )
+}
+
+const inputClass =
+  "h-10 rounded-lg border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-all"
+
+export function AddMemberForm() {
+  const router = useRouter()
+  const [state, formAction, isPending] = useActionState(
+    addMemberAction,
+    initialState
+  )
+  const [photoUrl, setPhotoUrl] = useState("")
+  const [photoPreview, setPhotoPreview] = useState("")
+  const formRef = useRef<HTMLFormElement>(null)
+
+  useEffect(() => {
+    if (state.success) {
+      toast.success("Member added successfully! Welcome SMS sent.")
+      router.push("/members")
+    }
+    if (state.error) {
+      toast.error(state.error)
+    }
+  }, [state, router])
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    accept: { "image/*": [] },
+    maxFiles: 1,
+    onDrop: (files) => {
+      const file = files[0]
+      if (!file) return
+      const preview = URL.createObjectURL(file)
+      setPhotoPreview(preview)
+      setPhotoUrl(preview)
+    },
+  })
+
+  const fieldError = (field: string) => state.fieldErrors?.[field]?.[0]
+
+  return (
+    <form ref={formRef} action={formAction} className="max-w-2xl mx-auto">
+      <input type="hidden" name="photo_url" value={photoUrl} />
+
+      {/* ── Section 1: Photo ── */}
+      <div className="bg-card border border-border rounded-2xl p-6 mb-4 shadow-sm">
+        <SectionHeader
+          step={1}
+          title="Profile Photo"
+          description="Upload a clear, recent photo of the member."
+        />
+
+        <div className="flex items-center gap-6">
+          {/* Avatar preview */}
+          <div className="relative flex-shrink-0">
+            <div className="h-24 w-24 rounded-2xl border-2 border-border overflow-hidden bg-muted flex items-center justify-center shadow-inner">
+              {photoPreview ? (
+                <Image
+                  src={photoPreview}
+                  alt="Profile preview"
+                  fill
+                  className="object-cover"
+                />
+              ) : (
+                <User className="h-9 w-9 text-muted-foreground" />
+              )}
+            </div>
+            {photoPreview && (
+              <div className="absolute -bottom-1.5 -right-1.5 bg-emerald-500 rounded-full p-1 shadow">
+                <Camera className="h-3 w-3 text-white" />
+              </div>
+            )}
+          </div>
+
+          {/* Dropzone */}
+          <div
+            {...getRootProps()}
+            className={`flex-1 border-2 border-dashed rounded-xl px-5 py-4 cursor-pointer transition-all
+              ${
+                isDragActive
+                  ? "border-ring bg-accent"
+                  : "border-border hover:border-ring/50 hover:bg-accent/50"
+              }`}
+          >
+            <input {...getInputProps()} />
+            <div className="flex flex-col items-center gap-1.5 text-center">
+              <Upload className="h-5 w-5 text-muted-foreground" />
+              <p className="text-sm font-medium text-foreground">
+                {isDragActive ? "Drop your photo here" : "Click or drag to upload"}
+              </p>
+              <p className="text-xs text-muted-foreground">PNG, JPG or WEBP • Max 5MB</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Section 2: Personal Info ── */}
+      <div className="bg-card border border-border rounded-2xl p-6 mb-4 shadow-sm">
+        <SectionHeader
+          step={2}
+          title="Personal Information"
+          description="Provide the member's basic contact and identity details."
+        />
+
+        <FieldGroup>
+          <Field id="full_name" label="Full Name" required error={fieldError("full_name")} span>
+            <Input
+              id="full_name"
+              name="full_name"
+              placeholder="Enter full name"
+              className={inputClass}
+            />
+          </Field>
+
+          <Field id="phone" label="Phone Number" required error={fieldError("phone")}>
+            <Input
+              id="phone"
+              name="phone"
+              placeholder="07XX XXX XXX"
+              className={inputClass}
+            />
+          </Field>
+
+          <Field id="email" label="Email Address" error={fieldError("email")}>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="email@example.com"
+              className={inputClass}
+            />
+          </Field>
+
+          <Field id="national_id" label="National ID" required error={fieldError("national_id")}>
+            <Input
+              id="national_id"
+              name="national_id"
+              placeholder="CM XXXXXXXXXX"
+              className={inputClass}
+            />
+          </Field>
+
+          <Field id="date_of_birth" label="Date of Birth">
+            <Input
+              id="date_of_birth"
+              name="date_of_birth"
+              type="date"
+              className={inputClass}
+            />
+          </Field>
+
+          <Field id="address" label="Physical Address" span>
+            <Input
+              id="address"
+              name="address"
+              placeholder="Street, area or town"
+              className={inputClass}
+            />
+          </Field>
+
+          <Field id="status" label="Membership Status" span>
+            <Select name="status" defaultValue="active">
+              <SelectTrigger className={`${inputClass} w-full flex`}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">
+                  <span className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
+                    Active
+                  </span>
+                </SelectItem>
+                <SelectItem value="suspended">
+                  <span className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 inline-block" />
+                    Suspended
+                  </span>
+                </SelectItem>
+                <SelectItem value="exited">
+                  <span className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground inline-block" />
+                    Exited
+                  </span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
+        </FieldGroup>
+      </div>
+
+      {/* ── Section 3: Next of Kin ── */}
+      <div className="bg-card border border-border rounded-2xl p-6 mb-6 shadow-sm">
+        <SectionHeader
+          step={3}
+          title="Next of Kin"
+          description="Optional emergency contact information."
+        />
+
+        <FieldGroup>
+          <Field id="next_of_kin" label="Full Name">
+            <Input
+              id="next_of_kin"
+              name="next_of_kin"
+              placeholder="Next of kin name"
+              className={inputClass}
+            />
+          </Field>
+          <Field id="next_of_kin_phone" label="Phone Number">
+            <Input
+              id="next_of_kin_phone"
+              name="next_of_kin_phone"
+              placeholder="07XX XXX XXX"
+              className={inputClass}
+            />
+          </Field>
+        </FieldGroup>
+      </div>
+
+      {/* ── Actions ── */}
+      <div className="flex items-center justify-between pt-2 pb-8">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Cancel
+        </button>
+
+        <Button
+          type="submit"
+          disabled={isPending}
+          className="h-10 px-6 rounded-xl text-sm font-medium tracking-wide transition-all shadow-sm"
+        >
+          {isPending ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Saving…
+            </>
+          ) : (
+            "Save Member →"
+          )}
+        </Button>
+      </div>
+    </form>
+  )
+}

@@ -1,0 +1,20 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1774858150359,
+      "tag": "0000_complete_vision",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1774883788958,
+      "tag": "0001_orange_marvel_zombies",
+      "breakpoints": true
+    }
+  ]
+}
