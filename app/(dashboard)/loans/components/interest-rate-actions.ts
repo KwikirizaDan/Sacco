@@ -6,6 +6,7 @@ import {
   addInterestRate,
   updateInterestRate,
   deleteInterestRate,
+  getActiveInterestRates,
   CreateInterestRateInput,
   UpdateInterestRateInput,
 } from "@/db/queries/interest-rates"
@@ -47,6 +48,20 @@ export async function updateInterestRateAction(
     return {
       error: error instanceof Error ? error.message : "Failed to update interest rate",
     }
+  }
+}
+
+// ─── Delete Interest Rate ─────────────────────────────────────────────────────
+
+// ─── Get Interest Rates ─────────────────────────────────────────────────────
+
+export async function getInterestRatesAction() {
+  try {
+    const rates = await getActiveInterestRates()
+    return rates
+  } catch (error) {
+    console.error("Error in getInterestRatesAction:", error)
+    throw new Error("Failed to get interest rates")
   }
 }
 

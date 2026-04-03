@@ -38,6 +38,7 @@ import {
   addInterestRateAction,
   updateInterestRateAction,
   deleteInterestRateAction,
+  getInterestRatesAction,
 } from "../components/interest-rate-actions"
 
 export default function InterestRatesPage() {
@@ -61,8 +62,7 @@ export default function InterestRatesPage() {
   // Refresh rates list
   const refreshRates = async () => {
     try {
-      const response = await fetch("/api/interest-rates")
-      const newRates = await response.json()
+      const newRates = await getInterestRatesAction()
       setRates(newRates)
     } catch (error) {
       console.error("Failed to refresh rates:", error)
@@ -93,15 +93,12 @@ export default function InterestRatesPage() {
       return
     }
 
-    // Check for overlapping ranges
+    // Check for overlapping ranges (strict: must share some space, not just endpoints)
+    const minInCents = minAmount * 100
+    const maxInCents = maxAmount * 100
     const overlapping = rates.some(
       (rate) =>
-        (minAmount * 100 >= rate.min_amount &&
-          minAmount * 100 <= rate.max_amount) ||
-        (maxAmount * 100 >= rate.min_amount &&
-          maxAmount * 100 <= rate.max_amount) ||
-        (minAmount * 100 <= rate.min_amount &&
-          maxAmount * 100 >= rate.max_amount)
+        (minInCents < rate.max_amount && maxInCents > rate.min_amount)
     )
 
     if (overlapping) {
@@ -161,16 +158,12 @@ export default function InterestRatesPage() {
       return
     }
 
-    // Check for overlapping ranges (excluding current rate)
+    // Check for overlapping ranges (strict: must share some space, excluding current rate)
+    const minInCents = minAmount * 100
+    const maxInCents = maxAmount * 100
     const overlapping = rates.some(
       (r) =>
-        r.id !== id &&
-        ((minAmount * 100 >= r.min_amount &&
-          minAmount * 100 <= r.max_amount) ||
-          (maxAmount * 100 >= r.min_amount &&
-            maxAmount * 100 <= r.max_amount) ||
-          (minAmount * 100 <= r.min_amount &&
-            maxAmount * 100 >= r.max_amount))
+        r.id !== id && (minInCents < r.max_amount && maxInCents > r.min_amount)
     )
 
     if (overlapping) {
