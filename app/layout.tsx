@@ -1,11 +1,14 @@
 import { Suspense } from "react"
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
+import { Inter, Public_Sans } from "next/font/google"
 import { ClerkProvider } from "@clerk/nextjs"
 import { Toaster } from "sonner"
 import { ThemeProvider } from "@/components/providers/theme-provider"
 import { QueryProvider } from "@/components/providers/query-provider"
 import "./globals.css"
+import { cn } from "@/lib/utils";
+
+const publicSans = Public_Sans({subsets:['latin'],variable:'--font-sans'});
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -62,7 +65,7 @@ export default function RootLayout({
         },
       }}
     >
-      <html lang="en" suppressHydrationWarning>
+      <html lang="en" suppressHydrationWarning className={cn("font-sans", publicSans.variable)}>
         <body className={inter.className}>
           <QueryProvider>
             <Suspense fallback={null}>
