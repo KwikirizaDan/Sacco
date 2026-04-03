@@ -144,10 +144,6 @@ export function KpiCards(props: KpiCardsProps) {
             style={{ animationDelay: `${i * 70}ms` }}
           >
             {/* Left accent bar */}
-            <div
-              className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-2xl"
-              style={{ background: card.accentColor }}
-            />
 
             {/* Subtle tinted background on hover */}
             <div

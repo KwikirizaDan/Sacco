@@ -112,10 +112,6 @@ export function DocumentsClient({ documents, members }: DocumentsClientProps) {
             onClick={() => setTypeFilter(typeFilter === type ? "all" : type)}
           >
             {/* Left accent bar */}
-            <div
-              className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-2xl"
-              style={{ background: typeColors[type].split(" ")[1] === "text-blue-700" ? "#3b82f6" : typeColors[type].split(" ")[1] === "text-green-700" ? "#10b981" : typeColors[type].split(" ")[1] === "text-orange-700" ? "#f97316" : typeColors[type].split(" ")[1] === "text-purple-700" ? "#a855f7" : "#6b7280" }}
-            />
 
             {/* Subtle tinted background on hover */}
             <div

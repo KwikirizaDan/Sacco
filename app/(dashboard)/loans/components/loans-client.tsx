@@ -22,9 +22,11 @@ import {
   Plus,
   Download,
   Percent,
+  HandCoins,
 } from "lucide-react"
 import { formatUGX } from "@/lib/utils/format"
 import { LoansTable } from "./loans-table"
+import { DonutChart } from "@/app/(dashboard)/components/donut-chart"
 import * as XLSX from "xlsx"
 import { toast } from "sonner"
 import Link from "next/link"
@@ -73,9 +75,15 @@ const statusColors: Record<string, string> = {
   verified: "#06b6d4",
 }
 
+// Consistent color palette matching dashboard line graph
+const CHART_COLORS = {
+  amount: "#6366f1",   // indigo - matching loans color
+  balance: "#10b981", // emerald - matching savings color  
+}
+
 const chartConfig: ChartConfig = {
-  amount: { label: "Amount", color: "hsl(var(--chart-1))" },
-  balance: { label: "Balance", color: "hsl(var(--chart-2))" },
+  amount: { label: "Amount", color: CHART_COLORS.amount },
+  balance: { label: "Balance", color: CHART_COLORS.balance },
 }
 
 export function LoansClient({ loans, members, stats, interestRates }: LoansClientProps) {
@@ -101,9 +109,9 @@ export function LoansClient({ loans, members, stats, interestRates }: LoansClien
       grouped[l.status] = (grouped[l.status] || 0) + 1
     })
     return Object.entries(grouped).map(([status, count]) => ({
-      status,
-      count,
-      fill: statusColors[status] ?? "#6b7280",
+      label: status.charAt(0).toUpperCase() + status.slice(1),
+      value: count,
+      color: statusColors[status] ?? "#6b7280",
     }))
   }, [loans])
 
@@ -205,10 +213,6 @@ export function LoansClient({ loans, members, stats, interestRates }: LoansClien
             className="relative bg-card border border-border rounded overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 group"
           >
             {/* Left accent bar */}
-            <div
-              className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-2xl"
-              style={{ background: card.accentColor }}
-            />
 
             {/* Subtle tinted background on hover */}
             <div
@@ -277,50 +281,21 @@ export function LoansClient({ loans, members, stats, interestRates }: LoansClien
                   }
                 />
                 <ChartLegend content={<ChartLegendContent />} />
-                <Bar dataKey="amount" fill="hsl(var(--chart-1))" radius={4} name="Amount" />
-                <Bar dataKey="balance" fill="hsl(var(--chart-2))" radius={4} name="Balance" />
+                <Bar dataKey="amount" fill={CHART_COLORS.amount} radius={4} name="Amount" />
+                <Bar dataKey="balance" fill={CHART_COLORS.balance} radius={4} name="Balance" />
               </BarChart>
             </ChartContainer>
           </CardContent>
         </Card>
 
         {/* Pie Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Loans by Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {statusChartData.length === 0 ? (
-              <div className="h-[220px] flex items-center justify-center text-muted-foreground text-sm">
-                No data yet
-              </div>
-            ) : (
-              <ChartContainer
-                config={{}}
-                className="h-[220px] w-full min-w-0"
-              >
-                <PieChart>
-                  <Pie
-                    data={statusChartData}
-                    dataKey="count"
-                    nameKey="status"
-                    cx="50%"
-                    cy="45%"
-                    innerRadius={50}
-                    outerRadius={75}
-                    paddingAngle={3}
-                  >
-                    {statusChartData.map((entry, i) => (
-                      <Cell key={i} fill={entry.fill} />
-                    ))}
-                  </Pie>
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <ChartLegend content={<ChartLegendContent />} />
-                </PieChart>
-              </ChartContainer>
-            )}
-          </CardContent>
-        </Card>
+        <DonutChart
+          data={statusChartData}
+          totalLabel="Loans"
+          title="Loans by Status"
+          subtitle="Breakdown by current status"
+          icon={<HandCoins className="h-4 w-4 text-muted-foreground" />}
+        />
       </div>
 
       {/* Toolbar */}

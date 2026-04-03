@@ -66,6 +66,7 @@ import {
 } from "lucide-react"
 import { formatUGX, formatDate } from "@/lib/utils/format"
 import { ReportPdfButton } from "./report-pdf"
+import { DonutChart } from "@/app/(dashboard)/components/donut-chart"
 import * as XLSX from "xlsx"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -153,10 +154,17 @@ const notificationStatusColors: Record<string, string> = {
   failed: "#ef4444",
 }
 
+// Consistent color palette matching dashboard line graph
+const CHART_COLORS = {
+  amount: "#10b981",   // emerald - matching savings color
+  balance: "#6366f1", // indigo - matching loans color  
+  count: "#3b82f6",   // blue - additional accent
+}
+
 const chartConfig: ChartConfig = {
-  amount: { label: "Amount", color: "hsl(var(--chart-1))" },
-  balance: { label: "Balance", color: "hsl(var(--chart-2))" },
-  count: { label: "Count", color: "hsl(var(--chart-3))" },
+  amount: { label: "Amount", color: CHART_COLORS.amount },
+  balance: { label: "Balance", color: CHART_COLORS.balance },
+  count: { label: "Count", color: CHART_COLORS.count },
 }
 
 // Tab configuration with icons
@@ -247,9 +255,9 @@ export function ReportsClient({
       grouped[l.status] = (grouped[l.status] || 0) + 1
     })
     return Object.entries(grouped).map(([status, count]) => ({
-      status,
-      count,
-      fill: loanStatusColors[status] ?? "#6b7280",
+      label: status.charAt(0).toUpperCase() + status.slice(1),
+      value: count,
+      color: loanStatusColors[status] ?? "#6b7280",
     }))
   }, [loans])
 
@@ -321,10 +329,6 @@ export function ReportsClient({
             className="relative bg-card border border-border rounded overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 group"
           >
             {/* Left accent bar */}
-            <div
-              className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-2xl"
-              style={{ background: card.accentColor }}
-            />
 
             {/* Subtle tinted background on hover */}
             <div
@@ -386,7 +390,7 @@ export function ReportsClient({
                         "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-200",
                         "hover:bg-muted hover:text-foreground",
                         isActive
-                          ? "bg-primary/10 text-primary border-l-2 border-primary"
+                          ? "bg-primary/10 text-primary"
                           : "text-muted-foreground"
                       )}
                     >
@@ -427,15 +431,15 @@ export function ReportsClient({
                       <AreaChart data={monthlyLoansData}>
                         <defs>
                           <linearGradient id="loanGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.3} />
-                            <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0} />
+                            <stop offset="5%" stopColor={CHART_COLORS.amount} stopOpacity={0.3} />
+                            <stop offset="95%" stopColor={CHART_COLORS.amount} stopOpacity={0} />
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                         <XAxis dataKey="month" tickLine={false} axisLine={false} className="text-xs" />
                         <YAxis tickLine={false} axisLine={false} className="text-xs" tickFormatter={(v) => `${(v / 1000000).toFixed(1)}M`} />
                         <ChartTooltip content={<ChartTooltipContent formatter={(v) => `UGX ${Number(v).toLocaleString()}`} />} />
-                        <Area type="monotone" dataKey="amount" stroke="hsl(var(--chart-1))" fill="url(#loanGrad)" strokeWidth={2} />
+                        <Area type="monotone" dataKey="amount" stroke={CHART_COLORS.amount} fill="url(#loanGrad)" strokeWidth={2} />
                       </AreaChart>
                     </ChartContainer>
                   </CardContent>
@@ -451,15 +455,15 @@ export function ReportsClient({
                       <AreaChart data={monthlySavingsData}>
                         <defs>
                           <linearGradient id="savGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.3} />
-                            <stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0} />
+                            <stop offset="5%" stopColor={CHART_COLORS.balance} stopOpacity={0.3} />
+                            <stop offset="95%" stopColor={CHART_COLORS.balance} stopOpacity={0} />
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                         <XAxis dataKey="month" tickLine={false} axisLine={false} className="text-xs" />
                         <YAxis tickLine={false} axisLine={false} className="text-xs" tickFormatter={(v) => `${(v / 1000000).toFixed(1)}M`} />
                         <ChartTooltip content={<ChartTooltipContent formatter={(v) => `UGX ${Number(v).toLocaleString()}`} />} />
-                        <Area type="monotone" dataKey="balance" stroke="hsl(var(--chart-2))" fill="url(#savGrad)" strokeWidth={2} />
+                        <Area type="monotone" dataKey="balance" stroke={CHART_COLORS.balance} fill="url(#savGrad)" strokeWidth={2} />
                       </AreaChart>
                     </ChartContainer>
                   </CardContent>
@@ -477,7 +481,7 @@ export function ReportsClient({
                         <XAxis dataKey="month" tickLine={false} axisLine={false} className="text-xs" />
                         <YAxis tickLine={false} axisLine={false} className="text-xs" />
                         <ChartTooltip content={<ChartTooltipContent />} />
-                        <Bar dataKey="count" fill="hsl(var(--chart-3))" radius={4} name="Members" />
+                        <Bar dataKey="count" fill={CHART_COLORS.count} radius={4} name="Members" />
                       </BarChart>
                     </ChartContainer>
                   </CardContent>
@@ -489,23 +493,13 @@ export function ReportsClient({
                     <CardDescription>By current status</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    {loanStatusData.length === 0 ? (
-                      <div className="h-[220px] flex items-center justify-center text-muted-foreground text-sm">
-                        No data yet
-                      </div>
-                    ) : (
-                      <ChartContainer config={{}} className="h-[220px] w-full">
-                        <PieChart>
-                          <Pie data={loanStatusData} dataKey="count" nameKey="status" cx="50%" cy="45%" innerRadius={50} outerRadius={80} paddingAngle={3}>
-                            {loanStatusData.map((e, i) => (
-                              <Cell key={i} fill={e.fill} />
-                            ))}
-                          </Pie>
-                          <ChartTooltip content={<ChartTooltipContent />} />
-                          <ChartLegend content={<ChartLegendContent />} />
-                        </PieChart>
-                      </ChartContainer>
-                    )}
+                    <DonutChart
+                      data={loanStatusData}
+                      totalLabel="Loans"
+                      title="Loan Status"
+                      subtitle="By current status"
+                      icon={<HandCoins className="h-4 w-4 text-muted-foreground" />}
+                    />
                   </CardContent>
                 </Card>
               </div>

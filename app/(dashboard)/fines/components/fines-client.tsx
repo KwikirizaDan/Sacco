@@ -33,6 +33,7 @@ import {
 import { formatUGX } from "@/lib/utils/format"
 import { FinesTable } from "./fines-table"
 import { AddFineDialog } from "./add-fine-dialog"
+import { DonutChart } from "@/app/(dashboard)/components/donut-chart"
 import * as XLSX from "xlsx"
 import { toast } from "sonner"
 
@@ -51,8 +52,11 @@ interface FinesClientProps {
   categories: any[]
 }
 
+// Consistent color palette matching dashboard line graph
+const CHART_COLOR = "#10b981" // emerald - matching savings color
+
 const chartConfig: ChartConfig = {
-  amount: { label: "Amount", color: "hsl(var(--chart-1))" },
+  amount: { label: "Amount", color: CHART_COLOR },
 }
 
 export const priorityColors: Record<string, string> = {
@@ -115,9 +119,9 @@ export function FinesClient({ fines, stats, members, categories }: FinesClientPr
 
   // Status pie
   const pieData = [
-    { name: "Pending", value: stats.pendingCount, fill: "#f59e0b" },
-    { name: "Paid", value: stats.paidCount, fill: "#10b981" },
-    { name: "Waived", value: stats.waivedCount, fill: "#6b7280" },
+    { label: "Pending", value: stats.pendingCount, color: "#f59e0b" },
+    { label: "Paid", value: stats.paidCount, color: "#10b981" },
+    { label: "Waived", value: stats.waivedCount, color: "#6b7280" },
   ].filter((d) => d.value > 0)
 
   const handleExport = () => {
@@ -181,10 +185,6 @@ export function FinesClient({ fines, stats, members, categories }: FinesClientPr
             className="relative bg-card border border-border rounded overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 group"
           >
             {/* Left accent bar */}
-            <div
-              className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-2xl"
-              style={{ background: card.accentColor }}
-            />
 
             {/* Subtle tinted background on hover */}
             <div
@@ -253,45 +253,19 @@ export function FinesClient({ fines, stats, members, categories }: FinesClientPr
                     />
                   }
                 />
-                <Bar dataKey="amount" fill="hsl(var(--chart-5))" radius={4} name="Amount" />
+                <Bar dataKey="amount" fill={CHART_COLOR} radius={4} name="Amount" />
               </BarChart>
             </ChartContainer>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Fines by Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {pieData.length === 0 ? (
-              <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">
-                No data yet
-              </div>
-            ) : (
-              <ChartContainer config={{}} className="h-[200px] w-full">
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="45%"
-                    innerRadius={50}
-                    outerRadius={75}
-                    paddingAngle={3}
-                  >
-                    {pieData.map((e, i) => (
-                      <Cell key={i} fill={e.fill} />
-                    ))}
-                  </Pie>
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <ChartLegend content={<ChartLegendContent />} />
-                </PieChart>
-              </ChartContainer>
-            )}
-          </CardContent>
-        </Card>
+        <DonutChart
+          data={pieData}
+          totalLabel="Fines"
+          title="Fines by Status"
+          subtitle="Breakdown by status"
+          icon={<AlertCircle className="h-4 w-4 text-muted-foreground" />}
+        />
       </div>
 
       {/* Toolbar */}

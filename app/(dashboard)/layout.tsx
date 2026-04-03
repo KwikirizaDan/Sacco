@@ -32,7 +32,8 @@ export default async function DashboardLayout({
         </Suspense>
         <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 bg-background sticky top-0 z-50">
           <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mx-2 h-4" />
+          
+          
           <div className="flex-1">
             <SearchCommand />
           </div>
@@ -41,7 +42,7 @@ export default async function DashboardLayout({
             <SubscriptionBadge />
             <Notifications />
             <ThemeToggle />
-            <Separator orientation="vertical" className="mx-1 h-4" />
+            
             <UserButton />
           </div>
         </header>

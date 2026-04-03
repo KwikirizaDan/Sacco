@@ -138,7 +138,7 @@ export function SettingsClient({
                           "flex items-start gap-3 px-3 py-3 rounded-md text-sm font-medium transition-all duration-200 w-full text-left",
                           "hover:bg-muted hover:text-foreground",
                           isActive
-                            ? "bg-primary/10 text-primary border-l-2 border-primary"
+                            ? "bg-primary/10 text-primary"
                             : "text-muted-foreground"
                         )}
                       >

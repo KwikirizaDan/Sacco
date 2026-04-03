@@ -173,10 +173,6 @@ export function ComplaintsClient({
             onClick={() => setStatusFilter(statusFilter === card.filter ? "all" : card.filter)}
           >
             {/* Left accent bar */}
-            <div
-              className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-2xl"
-              style={{ background: card.color.replace("text-", "").replace("-500", "") === "blue" ? "#3b82f6" : card.color.replace("text-", "").replace("-500", "") === "yellow" ? "#eab308" : card.color.replace("text-", "").replace("-500", "") === "green" ? "#10b981" : "#6b7280" }}
-            />
 
             {/* Subtle tinted background on hover */}
             <div

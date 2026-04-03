@@ -40,6 +40,7 @@ import {
   SlidersHorizontal,
   Download,
 } from "lucide-react"
+import { DonutChart } from "@/app/(dashboard)/components/donut-chart"
 import { formatUGX } from "@/lib/utils/format"
 import { SavingsTable } from "./savings-table"
 import { CreateAccountDialog } from "./create-account-dialog"
@@ -61,8 +62,11 @@ interface SavingsClientProps {
   activeLoans: any[]
 }
 
+// Consistent color palette matching dashboard line graph
+const CHART_COLOR = "#10b981" // emerald - matching savings color
+
 const chartConfig: ChartConfig = {
-  balance: { label: "Balance", color: "hsl(var(--chart-1))" },
+  balance: { label: "Balance", color: CHART_COLOR },
 }
 
 export function SavingsClient({
@@ -104,8 +108,8 @@ export function SavingsClient({
 
   // Account type pie
   const typeData = [
-    { name: "Regular", value: stats.regularAccounts, fill: "hsl(var(--chart-1))" },
-    { name: "Fixed", value: stats.fixedAccounts, fill: "hsl(var(--chart-2))" },
+    { label: "Regular", value: stats.regularAccounts, color: "#3b82f6" },
+    { label: "Fixed", value: stats.fixedAccounts, color: "#10b981" },
   ]
 
   const handleExport = () => {
@@ -165,10 +169,6 @@ export function SavingsClient({
             className="relative bg-card border border-border rounded overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 group"
           >
             {/* Left accent bar */}
-            <div
-              className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-2xl"
-              style={{ background: card.accentColor }}
-            />
 
             {/* Subtle tinted background on hover */}
             <div
@@ -250,7 +250,7 @@ export function SavingsClient({
                   />
                   <Bar
                     dataKey="balance"
-                    fill="hsl(var(--chart-1))"
+                    fill={CHART_COLOR}
                     radius={4}
                     name="Balance"
                   />
@@ -260,39 +260,13 @@ export function SavingsClient({
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Account Types</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {stats.totalAccounts === 0 ? (
-              <div className="h-[220px] flex items-center justify-center text-muted-foreground text-sm">
-                No data yet
-              </div>
-            ) : (
-              <ChartContainer config={{}} className="h-[220px] w-full">
-                <PieChart>
-                  <Pie
-                    data={typeData}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="45%"
-                    innerRadius={55}
-                    outerRadius={80}
-                    paddingAngle={4}
-                  >
-                    {typeData.map((entry, i) => (
-                      <Cell key={i} fill={entry.fill} />
-                    ))}
-                  </Pie>
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <ChartLegend content={<ChartLegendContent />} />
-                </PieChart>
-              </ChartContainer>
-            )}
-          </CardContent>
-        </Card>
+        <DonutChart
+          data={typeData}
+          totalLabel="Accounts"
+          title="Account Types"
+          subtitle="Breakdown by account type"
+          icon={<PiggyBank className="h-4 w-4 text-muted-foreground" />}
+        />
       </div>
 
       {/* Toolbar */}

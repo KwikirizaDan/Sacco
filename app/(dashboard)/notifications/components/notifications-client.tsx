@@ -55,7 +55,7 @@ export function NotificationsClient({
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <Card className="border-l-4 border-l-blue-500">
+        <Card className="">
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-xs text-muted-foreground">Total Sent</CardTitle>
             <Bell className="h-4 w-4 text-blue-500" />
@@ -64,7 +64,7 @@ export function NotificationsClient({
             <p className="text-xl font-bold">{notifications.length}</p>
           </CardContent>
         </Card>
-        <Card className="border-l-4 border-l-green-500">
+        <Card className="">
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-xs text-muted-foreground">Delivered</CardTitle>
             <CheckCircle className="h-4 w-4 text-green-500" />
@@ -73,7 +73,7 @@ export function NotificationsClient({
             <p className="text-xl font-bold">{sentCount}</p>
           </CardContent>
         </Card>
-        <Card className="border-l-4 border-l-red-500">
+        <Card className="">
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-xs text-muted-foreground">Failed</CardTitle>
             <XCircle className="h-4 w-4 text-red-500" />
@@ -82,7 +82,7 @@ export function NotificationsClient({
             <p className="text-xl font-bold">{failedCount}</p>
           </CardContent>
         </Card>
-        <Card className="border-l-4 border-l-yellow-500">
+        <Card className="">
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-xs text-muted-foreground">Pending</CardTitle>
             <Clock className="h-4 w-4 text-yellow-500" />
@@ -124,7 +124,7 @@ export function NotificationsClient({
                           "flex items-start gap-3 px-3 py-3 rounded-md text-sm font-medium transition-all duration-200 w-full text-left",
                           "hover:bg-muted hover:text-foreground",
                           isActive
-                            ? "bg-primary/10 text-primary border-l-2 border-primary"
+                            ? "bg-primary/10 text-primary"
                             : "text-muted-foreground"
                         )}
                       >
