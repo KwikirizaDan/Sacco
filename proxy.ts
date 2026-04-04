@@ -6,10 +6,10 @@ import type { NextRequest } from "next/server"
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>()
 
 const RATE_LIMITS = {
-  default: { windowMs: 15 * 60 * 1000, maxRequests: 100 }, // 100 requests per 15 min
-  auth: { windowMs: 15 * 60 * 1000, maxRequests: 10 }, // 10 requests per 15 min for auth
-  api: { windowMs: 60 * 1000, maxRequests: 30 }, // 30 requests per minute for API
-  mobile: { windowMs: 60 * 1000, maxRequests: 60 }, // 60 requests per minute for mobile pages
+  default: { windowMs: 15 * 60 * 1000, maxRequests: 10000 }, // 10000 requests per 15 min
+  auth: { windowMs: 15 * 60 * 1000, maxRequests: 8000 }, // 8000 requests per 15 min for auth
+  api: { windowMs: 60 * 1000, maxRequests: 2400 }, // 2400 requests per minute for API
+  mobile: { windowMs: 60 * 1000, maxRequests: 4000 }, // 4000 requests per minute for mobile pages
 }
 
 function getClientIP(request: NextRequest): string {
@@ -37,14 +37,24 @@ function getClientIP(request: NextRequest): string {
 }
 
 function getRateLimitConfig(pathname: string) {
-  if (
-    pathname.startsWith("/api/mobile/send-otp") ||
-    pathname.startsWith("/api/mobile/verify-otp") ||
-    pathname.includes("/withdraw") ||
-    pathname.includes("/deposit") ||
-    pathname.includes("/pay-fine")
-  ) {
-    return RATE_LIMITS.auth // Stricter limits for financial operations
+  const authEndpoints = [
+    "/api/mobile/send-otp",
+    "/api/mobile/verify-otp",
+    "/api/mobile/withdraw",
+    "/api/mobile/deposit",
+    "/api/mobile/deposit/confirm",
+    "/api/mobile/pay-fine",
+    "/api/mobile/request-loan",
+    "/api/mobile/repay-loan",
+    "/api/mobile/repay-loan/confirm",
+    "/api/mobile/complaint",
+    "/api/mobile/logout",
+  ]
+
+  const isAuthEndpoint = authEndpoints.some((ep) => pathname.includes(ep))
+
+  if (isAuthEndpoint) {
+    return RATE_LIMITS.auth // Stricter limits for auth and financial operations
   }
   if (pathname.startsWith("/api/")) {
     return RATE_LIMITS.api
