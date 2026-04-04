@@ -12,9 +12,6 @@ import { SavingsLoanChart } from "./components/savings-loan-chart"
 import { LoanStatusChart } from "./components/loan-status-chart"
 import { RecentTransactions } from "./components/recent-transactions"
 
-export const dynamic = "force-dynamic"
-export const revalidate = 60
-
 export default async function DashboardPage() {
   // Run all queries in parallel for maximum performance
   const [

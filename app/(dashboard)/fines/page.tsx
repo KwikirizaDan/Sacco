@@ -5,8 +5,6 @@ import { eq } from "drizzle-orm"
 import { SACCO_ID } from "@/lib/constants"
 import { FinesClient } from "./components/fines-client"
 
-export const dynamic = "force-dynamic"
-
 export default async function FinesPage() {
   const [allFines, stats, allMembers, categories] = await Promise.all([
     getAllFines(),

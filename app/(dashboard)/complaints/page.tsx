@@ -6,8 +6,6 @@ import { SACCO_ID } from "@/lib/constants"
 import { ComplaintsClient } from "./components/complaints-client"
 import { complaints } from "@/db/schema"
 
-export const dynamic = "force-dynamic"
-
 export default async function ComplaintsPage() {
   const [allComplaints, allMembers] = await Promise.all([
     getAllComplaints(),

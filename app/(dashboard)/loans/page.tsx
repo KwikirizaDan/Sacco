@@ -5,8 +5,6 @@ import { getActiveInterestRates } from "@/db/queries/interest-rates"
 import { LoansClient } from "./components/loans-client"
 import type { Loan } from "@/db/schema"
 
-export const dynamic = "force-dynamic"
-
 export default async function LoansPage() {
   // Fetch data in parallel for faster loading
   const [loans, members, interestRates] = await Promise.all([

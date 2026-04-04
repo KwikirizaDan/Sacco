@@ -16,8 +16,6 @@ import { eq, sum, count, desc, and, gte, lte, sql } from "drizzle-orm"
 import { SACCO_ID } from "@/lib/constants"
 import { ReportsClient } from "./components/reports-client"
 
-export const dynamic = "force-dynamic"
-
 export default async function ReportsPage() {
   // ─── Loan Stats ───────────────────────────────────────────────────────────
   const [loanStats] = await db

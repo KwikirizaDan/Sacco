@@ -2,16 +2,11 @@
 import withOffline from "next-pwa"
 
 const nextConfig = {
-  // Enable partial prerendering for faster initial loads
-  cacheComponents: true,
-
   // Turbopack configuration
   turbopack: {},
 
   // Enable experimental features for better performance
   experimental: {
-    // Enable optimistic client cache
-    optimisticClientCache: true,
     // Enable server actions
     serverActions: {
       bodySizeLimit: "2mb",

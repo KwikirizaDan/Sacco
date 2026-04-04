@@ -1,19 +1,10 @@
 import { Suspense } from "react"
-import type { Metadata } from "next"
-import { Public_Sans } from "next/font/google"
+import type { Metadata, Viewport } from "next"
 import { ClerkProvider } from "@clerk/nextjs"
 import { Toaster } from "sonner"
 import { ThemeProvider } from "@/components/providers/theme-provider"
 import { QueryProvider } from "@/components/providers/query-provider"
 import "./globals.css"
-import { cn } from "@/lib/utils"
-
-const publicSans = Public_Sans({
-  subsets: ["latin"],
-  variable: "--font-sans",
-  display: "swap",
-  preload: true,
-})
 
 export const metadata: Metadata = {
   title: "SACCO Manager",
@@ -37,7 +28,7 @@ export const metadata: Metadata = {
   },
 }
 
-export const viewport = {
+export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -71,20 +62,8 @@ export default function RootLayout({
         },
       }}
     >
-      <html
-        lang="en"
-        suppressHydrationWarning
-        className={cn("font-sans", publicSans.variable)}
-      >
-        <head>
-          <link rel="preconnect" href="https://fonts.googleapis.com" />
-          <link
-            rel="preconnect"
-            href="https://fonts.gstatic.com"
-            crossOrigin="anonymous"
-          />
-        </head>
-        <body className={publicSans.className}>
+      <html lang="en" suppressHydrationWarning>
+        <body className="font-sans">
           <QueryProvider>
             <Suspense fallback={null}>
               <ThemeProvider

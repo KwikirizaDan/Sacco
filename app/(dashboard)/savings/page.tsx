@@ -10,8 +10,6 @@ import { eq } from "drizzle-orm"
 import { SACCO_ID } from "@/lib/constants"
 import { SavingsClient } from "./components/savings-client"
 
-export const dynamic = "force-dynamic"
-
 export default async function SavingsPage() {
   const [accounts, stats, membersForSelect, categories, activeLoans] =
     await Promise.all([
