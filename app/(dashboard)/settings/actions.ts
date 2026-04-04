@@ -30,10 +30,10 @@ export async function updateGeneralSettingsAction(
       .update(saccos)
       .set({
         name: formData.get("name") as string,
-        contact_email: formData.get("contact_email") as string || null,
-        contact_phone: formData.get("contact_phone") as string || null,
-        address: formData.get("address") as string || null,
-        primary_color: formData.get("primary_color") as string || "#16a34a",
+        contact_email: (formData.get("contact_email") as string) || null,
+        contact_phone: (formData.get("contact_phone") as string) || null,
+        address: (formData.get("address") as string) || null,
+        primary_color: (formData.get("primary_color") as string) || "#16a34a",
         updated_at: new Date(),
       })
       .where(eq(saccos.id, SACCO_ID))
@@ -55,7 +55,8 @@ export async function uploadLogoAction(
   try {
     const file = formData.get("logo") as File
     if (!file || file.size === 0) return { error: "No file provided." }
-    if (file.size > 2 * 1024 * 1024) return { error: "File too large. Max 2MB." }
+    if (file.size > 2 * 1024 * 1024)
+      return { error: "File too large. Max 2MB." }
 
     const blob = await put(`logos/${SACCO_ID}-logo`, file, {
       access: "public",
@@ -84,7 +85,10 @@ export async function addInterestRateAction(
     const min = parseInt(formData.get("min_amount") as string) * 100
     const max = parseInt(formData.get("max_amount") as string) * 100
     const rate = formData.get("rate") as string
-    const rate_type = formData.get("rate_type") as "daily" | "monthly" | "annual"
+    const rate_type = formData.get("rate_type") as
+      | "daily"
+      | "monthly"
+      | "annual"
 
     if (min >= max) return { error: "Min amount must be less than max amount." }
 
@@ -106,7 +110,9 @@ export async function addInterestRateAction(
 
 // ─── Delete Interest Rate ─────────────────────────────────────────────────────
 
-export async function deleteInterestRateAction(id: string): Promise<SettingsState> {
+export async function deleteInterestRateAction(
+  id: string
+): Promise<SettingsState> {
   try {
     await smartDb.delete(interestRates).where(eq(interestRates.id, id))
     revalidatePath("/settings")
@@ -127,11 +133,12 @@ export async function addLoanCategoryAction(
     await smartDb.insert(loanCategories).values({
       sacco_id: SACCO_ID,
       name: formData.get("name") as string,
-      description: formData.get("description") as string || null,
+      description: (formData.get("description") as string) || null,
       min_amount: parseInt(formData.get("min_amount") as string) * 100 || 0,
       max_amount: parseInt(formData.get("max_amount") as string) * 100,
-      interest_rate: formData.get("interest_rate") as string || "0",
-      max_duration_months: parseInt(formData.get("max_duration_months") as string) || 12,
+      interest_rate: (formData.get("interest_rate") as string) || "0",
+      max_duration_months:
+        parseInt(formData.get("max_duration_months") as string) || 12,
       requires_guarantor: formData.get("requires_guarantor") === "true",
     })
     revalidatePath("/settings")
@@ -144,7 +151,9 @@ export async function addLoanCategoryAction(
 
 // ─── Delete Loan Category ─────────────────────────────────────────────────────
 
-export async function deleteLoanCategoryAction(id: string): Promise<SettingsState> {
+export async function deleteLoanCategoryAction(
+  id: string
+): Promise<SettingsState> {
   try {
     await smartDb.delete(loanCategories).where(eq(loanCategories.id, id))
     revalidatePath("/settings")
@@ -165,8 +174,8 @@ export async function addSavingsCategoryAction(
     await smartDb.insert(savingsCategories).values({
       sacco_id: SACCO_ID,
       name: formData.get("name") as string,
-      description: formData.get("description") as string || null,
-      interest_rate: formData.get("interest_rate") as string || "0",
+      description: (formData.get("description") as string) || null,
+      interest_rate: (formData.get("interest_rate") as string) || "0",
       is_fixed: formData.get("is_fixed") === "true",
     })
     revalidatePath("/settings")
@@ -179,7 +188,9 @@ export async function addSavingsCategoryAction(
 
 // ─── Delete Savings Category ──────────────────────────────────────────────────
 
-export async function deleteSavingsCategoryAction(id: string): Promise<SettingsState> {
+export async function deleteSavingsCategoryAction(
+  id: string
+): Promise<SettingsState> {
   try {
     await smartDb.delete(savingsCategories).where(eq(savingsCategories.id, id))
     revalidatePath("/settings")
@@ -200,7 +211,8 @@ export async function addFineCategoryAction(
     await smartDb.insert(fineCategories).values({
       sacco_id: SACCO_ID,
       name: formData.get("name") as string,
-      default_amount: parseInt(formData.get("default_amount") as string) * 100 || 0,
+      default_amount:
+        parseInt(formData.get("default_amount") as string) * 100 || 0,
     })
     revalidatePath("/settings")
     return { success: true }
@@ -212,7 +224,9 @@ export async function addFineCategoryAction(
 
 // ─── Delete Fine Category ─────────────────────────────────────────────────────
 
-export async function deleteFineCategoryAction(id: string): Promise<SettingsState> {
+export async function deleteFineCategoryAction(
+  id: string
+): Promise<SettingsState> {
   try {
     await smartDb.delete(fineCategories).where(eq(fineCategories.id, id))
     revalidatePath("/settings")
@@ -223,6 +237,80 @@ export async function deleteFineCategoryAction(id: string): Promise<SettingsStat
   }
 }
 
+// ─── Test Flutterwave Charge ──────────────────────────────────────────────────
+
+export async function testFlutterwaveChargeAction(
+  prevState: SettingsState,
+  formData: FormData
+): Promise<SettingsState> {
+  try {
+    const phone = formData.get("phone") as string
+    const amount = parseInt(formData.get("amount") as string) * 100
+
+    if (!phone || !amount) return { error: "Phone and amount required." }
+
+    const { initiateFlutterwaveCharge } =
+      await import("@/lib/payments/flutterwave")
+
+    await initiateFlutterwaveCharge({
+      phone_number: phone,
+      amount: amount / 100,
+      currency: "UGX",
+      tx_ref: `TEST-CHARGE-${Date.now()}`,
+      narration: "Test payment charge",
+      fullname: "Test User",
+    })
+
+    return { success: true }
+  } catch (err) {
+    console.error("Test charge failed:", err)
+    return { error: err instanceof Error ? err.message : "Test charge failed" }
+  }
+}
+
+// ─── Test Flutterwave Transfer ─────────────────────────────────────────────────
+
+export async function testFlutterwaveTransferAction(
+  prevState: SettingsState,
+  formData: FormData
+): Promise<SettingsState> {
+  try {
+    const phone = formData.get("phone") as string
+    const amount = parseInt(formData.get("amount") as string) * 100
+
+    if (!phone || !amount) return { error: "Phone and amount required." }
+
+    const { initiateFlutterwaveTransfer } =
+      await import("@/lib/payments/flutterwave")
+
+    const normalizedPhone = phone
+      .replace(/\s+/g, "")
+      .replace(/^\+/, "")
+      .replace(/^0/, "256")
+    const account_bank =
+      normalizedPhone.startsWith("25675") || normalizedPhone.startsWith("25670")
+        ? "MPS"
+        : "ATL"
+
+    await initiateFlutterwaveTransfer({
+      account_bank,
+      account_number: normalizedPhone,
+      amount: amount / 100,
+      currency: "UGX",
+      narration: "Test payment transfer",
+      reference: `TEST-TRANSFER-${Date.now()}`,
+      beneficiary_name: "Test User",
+    })
+
+    return { success: true }
+  } catch (err) {
+    console.error("Test transfer failed:", err)
+    return {
+      error: err instanceof Error ? err.message : "Test transfer failed",
+    }
+  }
+}
+
 // ─── Update Payment Settings ──────────────────────────────────────────────────
 
 export async function updatePaymentSettingsAction(
@@ -230,9 +318,7 @@ export async function updatePaymentSettingsAction(
   formData: FormData
 ): Promise<SettingsState> {
   try {
-    const existing = await smartDb
-      .select(saccos)
-      .where(eq(saccos.id, SACCO_ID))
+    const existing = await smartDb.select(saccos).where(eq(saccos.id, SACCO_ID))
 
     const currentSettings = JSON.parse(existing[0]?.settings ?? "{}")
 

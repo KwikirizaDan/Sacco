@@ -5,6 +5,8 @@ import { getActiveInterestRates } from "@/db/queries/interest-rates"
 import { LoansClient } from "./components/loans-client"
 import type { Loan } from "@/db/schema"
 
+export const dynamic = "force-dynamic"
+
 export default async function LoansPage() {
   // Fetch data in parallel for faster loading
   const [loans, members, interestRates] = await Promise.all([
@@ -17,7 +19,7 @@ export default async function LoansPage() {
   const totalDisbursed = loans
     .filter((l: Loan) => ["disbursed", "active", "settled"].includes(l.status))
     .reduce((sum: number, l: Loan) => sum + l.amount, 0)
-  
+
   const outstandingBalance = loans
     .filter((l: Loan) => ["disbursed", "active"].includes(l.status))
     .reduce((sum: number, l: Loan) => sum + l.balance, 0)
@@ -33,7 +35,7 @@ export default async function LoansPage() {
 
   // Enrich loans with member names
   const loansWithMembers = loans.map((loan: Loan) => {
-    const member = members.find(m => m.id === loan.member_id)
+    const member = members.find((m) => m.id === loan.member_id)
     return {
       ...loan,
       member_name: member?.full_name || "Unknown",
@@ -43,8 +45,8 @@ export default async function LoansPage() {
 
   return (
     <div className="space-y-6">
-      <LoansClient 
-        loans={loansWithMembers} 
+      <LoansClient
+        loans={loansWithMembers}
         members={members}
         stats={stats}
         interestRates={interestRates}

@@ -1,11 +1,18 @@
 "use server"
 
 import { smartDb } from "@/lib/db/database-adapter"
-import { savingsAccounts, transactions, members, loans, savingsCategories } from "@/db/schema"
+import {
+  savingsAccounts,
+  transactions,
+  members,
+  loans,
+  savingsCategories,
+} from "@/db/schema"
 import { eq, and } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { SACCO_ID } from "@/lib/constants"
 import { sendSms, smsTemplates } from "@/lib/sms"
+import { initiateFlutterwaveTransfer } from "@/lib/payments/flutterwave"
 import { z } from "zod"
 
 export type SavingsFormState = {
@@ -24,7 +31,8 @@ export async function createSavingsAccountAction(
     const member_id = formData.get("member_id") as string
     const category_id = formData.get("category_id") as string
     const account_type = formData.get("account_type") as string
-    const initial_deposit = parseInt(formData.get("initial_deposit") as string) * 100 || 0
+    const initial_deposit =
+      parseInt(formData.get("initial_deposit") as string) * 100 || 0
 
     if (!member_id) return { error: "Please select a member." }
 
@@ -64,7 +72,7 @@ export async function createSavingsAccountAction(
         balance_after: initial_deposit,
         reference_id: account.id,
         narration: "Initial deposit",
-        payment_method: "cash",
+        payment_method: "flutterwave",
       })
 
       const [member] = await smartDb
@@ -132,7 +140,7 @@ export async function depositAction(
       balance_after: newBalance,
       reference_id: account_id,
       narration: narration || "Savings deposit",
-      payment_method: (payment_method as any) || "cash",
+      payment_method: (payment_method as any) || "flutterwave",
     })
 
     const [member] = await smartDb
@@ -173,7 +181,7 @@ export async function withdrawAction(
     const account_id = formData.get("account_id") as string
     const amount = parseInt(formData.get("amount") as string) * 100
     const narration = formData.get("narration") as string
-    const payment_method = formData.get("payment_method") as string
+    const payment_method = (formData.get("payment_method") as string) || "cash"
 
     if (!amount || amount <= 0) return { error: "Enter a valid amount." }
 
@@ -182,7 +190,8 @@ export async function withdrawAction(
       .where(eq(savingsAccounts.id, account_id))
 
     if (!account) return { error: "Account not found." }
-    if (account.is_locked) return { error: "This account is locked. Unlock it first." }
+    if (account.is_locked)
+      return { error: "This account is locked. Unlock it first." }
     if (account.balance < amount) return { error: "Insufficient balance." }
 
     const newBalance = account.balance - amount
@@ -200,14 +209,39 @@ export async function withdrawAction(
       balance_after: newBalance,
       reference_id: account_id,
       narration: narration || "Savings withdrawal",
-      payment_method: (payment_method as any) || "cash",
+      payment_method:
+        payment_method === "mobile_money" ? "flutterwave" : payment_method,
     })
 
     const [member] = await smartDb
       .select(members)
       .where(eq(members.id, account.member_id))
 
+    // Initiate Flutterwave transfer to member's phone
     if (member?.phone) {
+      try {
+        const normalizedPhone = member.phone
+          .replace(/\s+/g, "")
+          .replace(/^\+/, "")
+          .replace(/^0/, "256")
+        const account_bank =
+          normalizedPhone.startsWith("25675") ||
+          normalizedPhone.startsWith("25670")
+            ? "MPS"
+            : "ATL"
+        await initiateFlutterwaveTransfer({
+          account_bank,
+          account_number: normalizedPhone,
+          amount: amount / 100,
+          currency: "UGX",
+          narration: narration || "Savings withdrawal",
+          reference: `WD-${account_id}-${Date.now()}`,
+          beneficiary_name: member.full_name,
+        })
+      } catch (transferError) {
+        console.error("[Savings] Flutterwave transfer failed:", transferError)
+      }
+
       try {
         await sendSms({
           to: member.phone,
@@ -343,11 +377,10 @@ export async function trimToLoanAction(
 
     if (!account) return { error: "Account not found." }
     if (account.is_locked) return { error: "Account is locked." }
-    if (account.balance < amount) return { error: "Insufficient savings balance." }
+    if (account.balance < amount)
+      return { error: "Insufficient savings balance." }
 
-    const [loan] = await smartDb
-      .select(loans)
-      .where(eq(loans.id, loan_id))
+    const [loan] = await smartDb.select(loans).where(eq(loans.id, loan_id))
 
     if (!loan) return { error: "Loan not found." }
 
@@ -378,7 +411,7 @@ export async function trimToLoanAction(
       balance_after: newSavingsBalance,
       reference_id: loan_id,
       narration: `Loan repayment from savings - ${loan.loan_ref}`,
-      payment_method: "cash",
+      payment_method: "flutterwave",
     })
 
     const [member] = await smartDb
@@ -442,9 +475,7 @@ export async function getMembersForSavings(): Promise<any[]> {
 
 // ─── Get Savings By ID ───────────────────────────────────────────────────────
 
-export async function getSavingsById(
-  id: string
-): Promise<any | null> {
+export async function getSavingsById(id: string): Promise<any | null> {
   try {
     const [account] = await smartDb
       .select({
@@ -522,9 +553,7 @@ export async function deleteSavingsAccountAction(
 
     if (!account) return { error: "Account not found." }
 
-    await smartDb
-      .delete(savingsAccounts)
-      .where(eq(savingsAccounts.id, id))
+    await smartDb.delete(savingsAccounts).where(eq(savingsAccounts.id, id))
 
     revalidatePath("/savings")
     return { success: true }

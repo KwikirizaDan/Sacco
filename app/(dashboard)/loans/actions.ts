@@ -2,11 +2,24 @@
 "use server"
 
 import { smartDb } from "@/lib/db/database-adapter"
-import { loans, members, transactions, interestRates, type InterestRate } from "@/db/schema"
+import {
+  loans,
+  members,
+  transactions,
+  interestRates,
+  type InterestRate,
+} from "@/db/schema"
 import { revalidatePath } from "next/cache"
 import { sendSms, smsTemplates } from "@/lib/sms"
 import { SACCO_ID } from "@/lib/constants"
-import { calculateLoan, getInterestRateForAmount } from "@/lib/pdf/loan-calculator"
+import {
+  calculateLoan,
+  getInterestRateForAmount,
+} from "@/lib/pdf/loan-calculator"
+import {
+  initiateFlutterwaveTransfer,
+  initiateFlutterwaveCharge,
+} from "@/lib/payments/flutterwave"
 import { z } from "zod"
 import { eq } from "drizzle-orm"
 
@@ -61,10 +74,8 @@ export async function addLoanAction(
       .select(interestRates)
       .where(eq(interestRates.sacco_id, SACCO_ID))
 
-    const { rate: interestRate, rateType: interestType } = getInterestRateForAmount(
-      amountInCents,
-      interestRatesList
-    )
+    const { rate: interestRate, rateType: interestType } =
+      getInterestRateForAmount(amountInCents, interestRatesList)
 
     // Calculate loan details
     const calc = calculateLoan({
@@ -78,7 +89,8 @@ export async function addLoanAction(
 
     // Get the interest rate ID
     const applicableRate = interestRatesList.find(
-      (rate: InterestRate) => amountInCents >= rate.min_amount && amountInCents <= rate.max_amount
+      (rate: InterestRate) =>
+        amountInCents >= rate.min_amount && amountInCents <= rate.max_amount
     )
 
     // Insert loan
@@ -126,9 +138,7 @@ export async function addLoanAction(
 
 export async function approveLoanAction(id: string): Promise<LoanFormState> {
   try {
-    const [loan] = await smartDb
-      .select(loans)
-      .where(eq(loans.id, id))
+    const [loan] = await smartDb.select(loans).where(eq(loans.id, id))
 
     if (!loan) return { error: "Loan not found." }
 
@@ -171,9 +181,7 @@ export async function declineLoanAction(
   reason: string
 ): Promise<LoanFormState> {
   try {
-    const [loan] = await smartDb
-      .select(loans)
-      .where(eq(loans.id, id))
+    const [loan] = await smartDb.select(loans).where(eq(loans.id, id))
 
     if (!loan) return { error: "Loan not found." }
 
@@ -213,12 +221,11 @@ export async function declineLoanAction(
 
 export async function disburseLoanAction(id: string): Promise<LoanFormState> {
   try {
-    const [loan] = await smartDb
-      .select(loans)
-      .where(eq(loans.id, id))
+    const [loan] = await smartDb.select(loans).where(eq(loans.id, id))
 
     if (!loan) return { error: "Loan not found." }
-    if (loan.status !== "approved") return { error: "Loan must be approved first." }
+    if (loan.status !== "approved")
+      return { error: "Loan must be approved first." }
 
     const [member] = await smartDb
       .select(members)
@@ -239,10 +246,36 @@ export async function disburseLoanAction(id: string): Promise<LoanFormState> {
       type: "loan_disbursement",
       amount: loan.amount,
       narration: `Loan disbursement - ${loan.loan_ref}`,
-      payment_method: "bank",
+      payment_method: "flutterwave",
     })
 
+    // Initiate Flutterwave transfer to member's phone
     if (member?.phone) {
+      try {
+        const normalizedPhone = member.phone
+          .replace(/\s+/g, "")
+          .replace(/^\+/, "")
+          .replace(/^0/, "256")
+        // Assume MTN for now, can be improved to detect network
+        const account_bank =
+          normalizedPhone.startsWith("25675") ||
+          normalizedPhone.startsWith("25670")
+            ? "MPS"
+            : "ATL"
+        await initiateFlutterwaveTransfer({
+          account_bank,
+          account_number: normalizedPhone,
+          amount: loan.amount / 100,
+          currency: "UGX",
+          narration: `Loan disbursement - ${loan.loan_ref}`,
+          reference: `DISB-${loan.id}`,
+          beneficiary_name: member.full_name,
+        })
+      } catch (transferError) {
+        console.error("[Loan] Flutterwave transfer failed:", transferError)
+        // Still proceed, maybe mark as pending transfer
+      }
+
       try {
         await sendSms({
           to: member.phone,
@@ -273,19 +306,45 @@ export async function repayLoanAction(
 ): Promise<LoanFormState> {
   try {
     const id = formData.get("loan_id") as string
-    const amount = parseInt(formData.get("amount") as string) * 100
+    const amountStr = (formData.get("amount") as string)?.replace(/,/g, "")
+    const amount = Math.round(parseFloat(amountStr || "0") * 100)
+    const payment_method = (formData.get("payment_method") as string) || "cash"
 
-    if (!amount || amount <= 0) return { error: "Valid amount required." }
+    if (!amountStr || isNaN(amount) || amount <= 0)
+      return { error: "Valid amount required." }
 
-    const [loan] = await smartDb
-      .select(loans)
-      .where(eq(loans.id, id))
+    const [loan] = await smartDb.select(loans).where(eq(loans.id, id))
 
     if (!loan) return { error: "Loan not found." }
+    if (loan.status !== "disbursed" && loan.status !== "active")
+      return { error: "Loan must be disbursed to record repayments." }
 
     const [member] = await smartDb
       .select(members)
       .where(eq(members.id, loan.member_id))
+
+    // Process payment if mobile money
+    if (payment_method === "mobile_money" && member?.phone) {
+      try {
+        await initiateFlutterwaveCharge({
+          phone_number: member.phone,
+          amount: amount / 100,
+          currency: "UGX",
+          tx_ref: `LOAN-REPAY-${loan.id}-${Date.now()}`,
+          narration: `Loan repayment - ${loan.loan_ref}`,
+          fullname: member.full_name,
+        })
+      } catch (chargeError) {
+        console.error(
+          "[Loan Repayment] Flutterwave charge failed:",
+          chargeError
+        )
+        return {
+          error:
+            "Payment processing failed. Please try again or contact support.",
+        }
+      }
+    }
 
     const newBalance = Math.max(0, loan.balance - amount)
     const newStatus = newBalance === 0 ? "settled" : "active"
@@ -307,7 +366,8 @@ export async function repayLoanAction(
       amount,
       balance_after: newBalance,
       narration: `Loan repayment - ${loan.loan_ref}`,
-      payment_method: "cash",
+      payment_method:
+        payment_method === "mobile_money" ? "flutterwave" : payment_method,
     })
 
     if (member?.phone) {

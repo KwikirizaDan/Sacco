@@ -40,14 +40,9 @@ export async function getActiveInterestRates() {
     const rates = await db
       .select()
       .from(interestRates)
-      .where(
-        and(
-          eq(interestRates.sacco_id, SACCO_ID),
-          eq(interestRates.is_active, true)
-        )
-      )
+      .where(eq(interestRates.sacco_id, SACCO_ID))
       .orderBy(interestRates.min_amount)
-    
+
     return rates
   } catch (error) {
     console.error("Error fetching active interest rates:", error)
@@ -65,7 +60,7 @@ export async function getAllInterestRates() {
       .from(interestRates)
       .where(eq(interestRates.sacco_id, SACCO_ID))
       .orderBy(interestRates.min_amount)
-    
+
     return rates
   } catch (error) {
     console.error("Error fetching all interest rates:", error)
@@ -82,12 +77,9 @@ export async function getInterestRateById(id: string) {
       .select()
       .from(interestRates)
       .where(
-        and(
-          eq(interestRates.id, id),
-          eq(interestRates.sacco_id, SACCO_ID)
-        )
+        and(eq(interestRates.id, id), eq(interestRates.sacco_id, SACCO_ID))
       )
-    
+
     return rate || null
   } catch (error) {
     console.error("Error fetching interest rate by ID:", error)
@@ -111,7 +103,7 @@ export async function getInterestRateForAmount(amount: number) {
         )
       )
       .limit(1)
-    
+
     return rate || null
   } catch (error) {
     console.error("Error fetching interest rate for amount:", error)
@@ -140,8 +132,12 @@ export async function checkOverlappingRanges(
     const overlapping = await db
       .select()
       .from(interestRates)
-      .where(excludeId ? and(baseCondition, sql`${interestRates.id} != ${excludeId}`) : baseCondition)
-    
+      .where(
+        excludeId
+          ? and(baseCondition, sql`${interestRates.id} != ${excludeId}`)
+          : baseCondition
+      )
+
     return overlapping.length > 0
   } catch (error) {
     console.error("Error checking overlapping ranges:", error)
@@ -157,22 +153,25 @@ export async function addInterestRate(data: CreateInterestRateInput) {
     // Convert amount from UGX to cents
     const minAmountInCents = Math.floor(data.min_amount * 100)
     const maxAmountInCents = Math.floor(data.max_amount * 100)
-    
+
     // Validate amounts
     if (minAmountInCents >= maxAmountInCents) {
       throw new Error("Minimum amount must be less than maximum amount")
     }
-    
+
     if (minAmountInCents < 0 || maxAmountInCents < 0) {
       throw new Error("Amounts cannot be negative")
     }
-    
+
     // Check for overlapping ranges
-    const hasOverlap = await checkOverlappingRanges(minAmountInCents, maxAmountInCents)
+    const hasOverlap = await checkOverlappingRanges(
+      minAmountInCents,
+      maxAmountInCents
+    )
     if (hasOverlap) {
       throw new Error("This amount range overlaps with an existing range")
     }
-    
+
     const [newRate] = await db
       .insert(interestRates)
       .values({
@@ -186,7 +185,7 @@ export async function addInterestRate(data: CreateInterestRateInput) {
         updated_at: new Date(),
       })
       .returning()
-    
+
     return newRate
   } catch (error) {
     console.error("Error adding interest rate:", error)
@@ -207,11 +206,11 @@ export async function updateInterestRate(
     if (!existingRate) {
       throw new Error("Interest rate not found")
     }
-    
+
     const updateData: any = {
       updated_at: new Date(),
     }
-    
+
     // Handle amount updates (convert from UGX to cents)
     if (data.min_amount !== undefined) {
       const minAmountInCents = Math.floor(data.min_amount * 100)
@@ -220,7 +219,7 @@ export async function updateInterestRate(
       }
       updateData.min_amount = minAmountInCents
     }
-    
+
     if (data.max_amount !== undefined) {
       const maxAmountInCents = Math.floor(data.max_amount * 100)
       if (maxAmountInCents < 0) {
@@ -228,46 +227,43 @@ export async function updateInterestRate(
       }
       updateData.max_amount = maxAmountInCents
     }
-    
+
     if (data.rate !== undefined) {
       if (data.rate < 0 || data.rate > 100) {
         throw new Error("Interest rate must be between 0 and 100")
       }
       updateData.rate = data.rate.toString()
     }
-    
+
     if (data.rate_type !== undefined) {
       updateData.rate_type = data.rate_type
     }
-    
+
     if (data.is_active !== undefined) {
       updateData.is_active = data.is_active
     }
-    
+
     // Check for overlapping ranges if amounts changed
     const minAmount = updateData.min_amount ?? existingRate.min_amount
     const maxAmount = updateData.max_amount ?? existingRate.max_amount
-    
+
     if (minAmount >= maxAmount) {
       throw new Error("Minimum amount must be less than maximum amount")
     }
-    
+
     const hasOverlap = await checkOverlappingRanges(minAmount, maxAmount, id)
     if (hasOverlap) {
       throw new Error("This amount range overlaps with an existing range")
     }
-    
+
     const [updatedRate] = await db
       .update(interestRates)
       .set(updateData)
       .where(
-        and(
-          eq(interestRates.id, id),
-          eq(interestRates.sacco_id, SACCO_ID)
-        )
+        and(eq(interestRates.id, id), eq(interestRates.sacco_id, SACCO_ID))
       )
       .returning()
-    
+
     return updatedRate
   } catch (error) {
     console.error("Error updating interest rate:", error)
@@ -287,17 +283,14 @@ export async function deactivateInterestRate(id: string) {
         updated_at: new Date(),
       })
       .where(
-        and(
-          eq(interestRates.id, id),
-          eq(interestRates.sacco_id, SACCO_ID)
-        )
+        and(eq(interestRates.id, id), eq(interestRates.sacco_id, SACCO_ID))
       )
       .returning()
-    
+
     if (!deactivatedRate) {
       throw new Error("Interest rate not found")
     }
-    
+
     return deactivatedRate
   } catch (error) {
     console.error("Error deactivating interest rate:", error)
@@ -317,17 +310,14 @@ export async function activateInterestRate(id: string) {
         updated_at: new Date(),
       })
       .where(
-        and(
-          eq(interestRates.id, id),
-          eq(interestRates.sacco_id, SACCO_ID)
-        )
+        and(eq(interestRates.id, id), eq(interestRates.sacco_id, SACCO_ID))
       )
       .returning()
-    
+
     if (!activatedRate) {
       throw new Error("Interest rate not found")
     }
-    
+
     return activatedRate
   } catch (error) {
     console.error("Error activating interest rate:", error)
@@ -347,25 +337,24 @@ export async function deleteInterestRate(id: string) {
       .from(loans)
       .where(eq(loans.interest_rate_id, id))
       .limit(1)
-    
+
     if (loanWithRate) {
-      throw new Error("Cannot delete interest rate that is being used by existing loans")
+      throw new Error(
+        "Cannot delete interest rate that is being used by existing loans"
+      )
     }
-    
+
     const [deletedRate] = await db
       .delete(interestRates)
       .where(
-        and(
-          eq(interestRates.id, id),
-          eq(interestRates.sacco_id, SACCO_ID)
-        )
+        and(eq(interestRates.id, id), eq(interestRates.sacco_id, SACCO_ID))
       )
       .returning()
-    
+
     if (!deletedRate) {
       throw new Error("Interest rate not found")
     }
-    
+
     return deletedRate
   } catch (error) {
     console.error("Error deleting interest rate:", error)
@@ -390,7 +379,7 @@ export async function getInterestRateStats() {
       })
       .from(interestRates)
       .where(eq(interestRates.sacco_id, SACCO_ID))
-    
+
     return {
       ...stats,
       minRate: Number(stats?.minRate || 0),
@@ -416,10 +405,10 @@ export async function bulkAddInterestRates(rates: CreateInterestRateInput[]) {
         const newRate = await addInterestRate(rate)
         results.push({ success: true, data: newRate })
       } catch (error) {
-        results.push({ 
-          success: false, 
+        results.push({
+          success: false,
           error: error instanceof Error ? error.message : "Failed to add rate",
-          data: rate 
+          data: rate,
         })
       }
     }
@@ -439,27 +428,27 @@ export function validateInterestRateRange(
   rate: number
 ): { isValid: boolean; errors: string[] } {
   const errors: string[] = []
-  
+
   if (minAmount <= 0) {
     errors.push("Minimum amount must be greater than 0")
   }
-  
+
   if (maxAmount <= 0) {
     errors.push("Maximum amount must be greater than 0")
   }
-  
+
   if (minAmount >= maxAmount) {
     errors.push("Minimum amount must be less than maximum amount")
   }
-  
+
   if (rate <= 0) {
     errors.push("Interest rate must be greater than 0")
   }
-  
+
   if (rate > 100) {
     errors.push("Interest rate cannot exceed 100%")
   }
-  
+
   return {
     isValid: errors.length === 0,
     errors,
@@ -479,16 +468,16 @@ export async function getRecommendedRate(
     if (!baseRate) {
       throw new Error("No interest rate found for this amount")
     }
-    
+
     let recommendedRate = Number(baseRate.rate)
-    
+
     // Adjust based on duration
     if (durationMonths > 24) {
       recommendedRate += 1 // Longer loans have higher risk
     } else if (durationMonths < 6) {
       recommendedRate -= 0.5 // Shorter loans have lower risk
     }
-    
+
     // Adjust based on member risk score if provided (1-10, lower is better)
     if (memberRiskScore !== undefined) {
       if (memberRiskScore > 7) {
@@ -497,16 +486,22 @@ export async function getRecommendedRate(
         recommendedRate -= 1 // Low risk members get better rates
       }
     }
-    
+
     // Ensure rate stays within reasonable bounds
     recommendedRate = Math.max(0, Math.min(100, recommendedRate))
-    
+
     return {
       recommendedRate,
       baseRate: Number(baseRate.rate),
       adjustments: {
         duration: durationMonths > 24 ? 1 : durationMonths < 6 ? -0.5 : 0,
-        risk: memberRiskScore ? (memberRiskScore > 7 ? 2 : memberRiskScore < 3 ? -1 : 0) : 0,
+        risk: memberRiskScore
+          ? memberRiskScore > 7
+            ? 2
+            : memberRiskScore < 3
+              ? -1
+              : 0
+          : 0,
       },
     }
   } catch (error) {

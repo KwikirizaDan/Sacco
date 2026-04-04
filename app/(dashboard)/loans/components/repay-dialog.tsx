@@ -16,6 +16,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { formatUGX } from "@/lib/utils/format"
 import { Loader2 } from "lucide-react"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 const initialState: LoanFormState = {}
 
@@ -58,19 +65,19 @@ export function RepayDialog({
           <input type="hidden" name="loan_id" value={loan.id} />
 
           <div className="grid grid-cols-3 gap-3 text-center text-sm">
-            <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
+            <div className="rounded-lg bg-blue-50 p-3 dark:bg-blue-950/30">
               <p className="text-xs text-muted-foreground">Daily</p>
               <p className="font-bold text-blue-600">
                 {formatUGX(loan.daily_payment ?? 0)}
               </p>
             </div>
-            <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">
+            <div className="rounded-lg bg-green-50 p-3 dark:bg-green-950/30">
               <p className="text-xs text-muted-foreground">Monthly</p>
               <p className="font-bold text-green-600">
                 {formatUGX(loan.monthly_payment ?? 0)}
               </p>
             </div>
-            <div className="p-3 bg-orange-50 dark:bg-orange-950/30 rounded-lg">
+            <div className="rounded-lg bg-orange-50 p-3 dark:bg-orange-950/30">
               <p className="text-xs text-muted-foreground">Min Payment</p>
               <p className="font-bold text-orange-600">
                 {formatUGX(loan.daily_payment ?? 0)}
@@ -88,14 +95,26 @@ export function RepayDialog({
             />
           </div>
 
-          <div className="flex gap-2 justify-end">
+          <div className="space-y-1.5">
+            <Label>Payment Method</Label>
+            <Select name="payment_method" defaultValue="mobile_money">
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="cash">Cash</SelectItem>
+                <SelectItem value="mobile_money">Mobile Money</SelectItem>
+                <SelectItem value="bank">Bank Transfer</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
             <Button type="submit" disabled={isPending}>
-              {isPending && (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              )}
+              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Record Payment
             </Button>
           </div>

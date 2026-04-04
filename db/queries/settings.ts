@@ -1,13 +1,16 @@
 import { db } from "@/db"
-import { saccos, interestRates, loanCategories, savingsCategories, fineCategories } from "@/db/schema"
+import {
+  saccos,
+  interestRates,
+  loanCategories,
+  savingsCategories,
+  fineCategories,
+} from "@/db/schema"
 import { eq } from "drizzle-orm"
 import { SACCO_ID } from "@/lib/constants"
 
 export async function getSaccoSettings() {
-  const [sacco] = await db
-    .select()
-    .from(saccos)
-    .where(eq(saccos.id, SACCO_ID))
+  const [sacco] = await db.select().from(saccos).where(eq(saccos.id, SACCO_ID))
   return sacco
 }
 
@@ -38,4 +41,23 @@ export async function getFineCategories() {
     .select()
     .from(fineCategories)
     .where(eq(fineCategories.sacco_id, SACCO_ID))
+}
+
+export async function getPaymentSettings() {
+  const sacco = await getSaccoSettings()
+  const settings = (() => {
+    try {
+      return JSON.parse(sacco?.settings ?? "{}")
+    } catch {
+      return {}
+    }
+  })()
+  const payments = settings?.payments ?? {}
+
+  // Auto-enable Flutterwave if secret key is configured
+  if (process.env.FLW_SECRET_KEY && !payments.flutterwave_enabled) {
+    payments.flutterwave_enabled = true
+  }
+
+  return payments
 }

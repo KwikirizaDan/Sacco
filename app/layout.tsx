@@ -1,20 +1,24 @@
 import { Suspense } from "react"
 import type { Metadata } from "next"
-import { Inter, Public_Sans } from "next/font/google"
+import { Public_Sans } from "next/font/google"
 import { ClerkProvider } from "@clerk/nextjs"
 import { Toaster } from "sonner"
 import { ThemeProvider } from "@/components/providers/theme-provider"
 import { QueryProvider } from "@/components/providers/query-provider"
 import "./globals.css"
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils"
 
-const publicSans = Public_Sans({subsets:['latin'],variable:'--font-sans'});
-
-const inter = Inter({ subsets: ["latin"] })
+const publicSans = Public_Sans({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+  preload: true,
+})
 
 export const metadata: Metadata = {
   title: "SACCO Manager",
-  description: "A modern SACCO management application for loans, savings, and member management",
+  description:
+    "A modern SACCO management application for loans, savings, and member management",
   manifest: "/manifest.json",
   applicationName: "SACCO Manager",
   appleWebApp: {
@@ -58,15 +62,29 @@ export default function RootLayout({
           card: "shadow-none border border-border bg-background",
           headerTitle: "text-foreground",
           headerSubtitle: "text-muted-foreground",
-          socialButtonsBlockButton: "border border-border bg-background hover:bg-muted text-foreground",
+          socialButtonsBlockButton:
+            "border border-border bg-background hover:bg-muted text-foreground",
           formFieldInput: "border border-input bg-background text-foreground",
           footerActionLink: "text-primary hover:text/primary/80",
-          formButtonPrimary: "bg-primary hover:bg-primary/90 text-primary-foreground",
+          formButtonPrimary:
+            "bg-primary hover:bg-primary/90 text-primary-foreground",
         },
       }}
     >
-      <html lang="en" suppressHydrationWarning className={cn("font-sans", publicSans.variable)}>
-        <body className={inter.className}>
+      <html
+        lang="en"
+        suppressHydrationWarning
+        className={cn("font-sans", publicSans.variable)}
+      >
+        <head>
+          <link rel="preconnect" href="https://fonts.googleapis.com" />
+          <link
+            rel="preconnect"
+            href="https://fonts.gstatic.com"
+            crossOrigin="anonymous"
+          />
+        </head>
+        <body className={publicSans.className}>
           <QueryProvider>
             <Suspense fallback={null}>
               <ThemeProvider

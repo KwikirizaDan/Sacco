@@ -1,4 +1,81 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server"
+import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
+
+// Simple in-memory rate limiter
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>()
+
+const RATE_LIMITS = {
+  default: { windowMs: 15 * 60 * 1000, maxRequests: 100 }, // 100 requests per 15 min
+  auth: { windowMs: 15 * 60 * 1000, maxRequests: 10 }, // 10 requests per 15 min for auth
+  api: { windowMs: 60 * 1000, maxRequests: 30 }, // 30 requests per minute for API
+  mobile: { windowMs: 60 * 1000, maxRequests: 60 }, // 60 requests per minute for mobile pages
+}
+
+function getClientIP(request: NextRequest): string {
+  const forwarded = request.headers.get("x-forwarded-for")
+  const realIP = request.headers.get("x-real-ip")
+  const clientIP = request.headers.get("x-client-ip")
+
+  if (forwarded) {
+    return forwarded.split(",")[0].trim()
+  }
+  if (realIP) {
+    return realIP
+  }
+  if (clientIP) {
+    return clientIP
+  }
+
+  // In development, use a fixed IP to avoid rate limiting issues
+  if (process.env.NODE_ENV === "development") {
+    return "127.0.0.1"
+  }
+
+  // Fallback to a default or hash of user agent (not ideal but better than nothing)
+  return request.headers.get("user-agent") || "unknown"
+}
+
+function getRateLimitConfig(pathname: string) {
+  if (
+    pathname.startsWith("/api/mobile/send-otp") ||
+    pathname.startsWith("/api/mobile/verify-otp") ||
+    pathname.includes("/withdraw") ||
+    pathname.includes("/deposit") ||
+    pathname.includes("/pay-fine")
+  ) {
+    return RATE_LIMITS.auth // Stricter limits for financial operations
+  }
+  if (pathname.startsWith("/api/")) {
+    return RATE_LIMITS.api
+  }
+  if (pathname.startsWith("/mobile/")) {
+    return RATE_LIMITS.mobile // Higher limits for mobile app usage
+  }
+  return RATE_LIMITS.default
+}
+
+function isRateLimited(
+  ip: string,
+  config: typeof RATE_LIMITS.default
+): boolean {
+  const now = Date.now()
+  const key = `${ip}:${config.windowMs}`
+  const record = rateLimitMap.get(key)
+
+  if (!record || now > record.resetTime) {
+    // First request or window expired
+    rateLimitMap.set(key, { count: 1, resetTime: now + config.windowMs })
+    return false
+  }
+
+  if (record.count >= config.maxRequests) {
+    return true
+  }
+
+  record.count++
+  return false
+}
 
 const isPublicRoute = createRouteMatcher([
   "/",
@@ -15,6 +92,30 @@ const isPublicRoute = createRouteMatcher([
 ])
 
 export default clerkMiddleware(async (auth, request) => {
+  const pathname = request.nextUrl.pathname
+
+  // Skip rate limiting in development for mobile routes
+  if (
+    process.env.NODE_ENV !== "development" &&
+    !pathname.startsWith("/mobile/")
+  ) {
+    // Apply rate limiting
+    const ip = getClientIP(request)
+    const config = getRateLimitConfig(pathname)
+
+    if (isRateLimited(ip, config)) {
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": Math.ceil(config.windowMs / 1000).toString(),
+          },
+        }
+      )
+    }
+  }
+
   // Skip auth protection for public routes
   if (isPublicRoute(request)) {
     return

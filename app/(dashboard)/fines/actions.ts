@@ -6,6 +6,12 @@ import { eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { SACCO_ID } from "@/lib/constants"
 import { sendSms, smsTemplates } from "@/lib/sms"
+import {
+  processPayment,
+  normalizePhone,
+  getMobileNetwork,
+  calculateFlutterwaveCharge,
+} from "@/lib/payments"
 import { z } from "zod"
 
 export type FineFormState = {
@@ -38,7 +44,7 @@ export async function addFineAction(
       amount: formData.get("amount") as string,
       reason: formData.get("reason") as string,
       description: formData.get("description") as string,
-      priority: formData.get("priority") as string || "normal",
+      priority: (formData.get("priority") as string) || "normal",
       due_date: formData.get("due_date") as string,
       notes: formData.get("notes") as string,
     }
@@ -102,31 +108,59 @@ export async function markFinePaidAction(
     const payment_method = formData.get("payment_method") as string
     const payment_reference = formData.get("payment_reference") as string
 
-    const [fine] = await smartDb
-      .select(fines)
-      .where(eq(fines.id, id))
+    const [fine] = await smartDb.select(fines).where(eq(fines.id, id))
 
     if (!fine) return { error: "Fine not found." }
+
+    const [member] = await smartDb
+      .select(members)
+      .where(eq(members.id, fine.member_id))
+
+    let finalReference = payment_reference
+    let finalMethod = payment_method || "cash"
+
+    if (
+      (payment_method === "flutterwave" || payment_method === "mobile_money") &&
+      member?.phone
+    ) {
+      const chargeAmount = fine.amount / 100
+      const chargeFee = calculateFlutterwaveCharge(chargeAmount)
+
+      const paymentResult = await processPayment({
+        phone_number: member.phone,
+        amount: chargeAmount + chargeFee,
+        email: member.email || undefined,
+        fullname: member.full_name,
+        tx_ref: `FINE-${fine.id}-${Date.now()}`,
+        narration: `Fine payment - ${fine.fine_ref}`,
+      })
+
+      if (!paymentResult.success) {
+        return {
+          error: paymentResult.error || "Payment failed. Please try again.",
+        }
+      }
+
+      finalReference =
+        paymentResult.data?.data?.tx_ref || `FINE-${fine.id}-${Date.now()}`
+      finalMethod = "flutterwave"
+    }
 
     await smartDb
       .update(fines)
       .set({
         status: "paid",
         paid_at: new Date(),
-        payment_method: (payment_method as any) || "cash",
-        payment_reference: payment_reference || null,
+        payment_method: finalMethod as any,
+        payment_reference: finalReference || null,
         updated_at: new Date(),
       })
       .where(eq(fines.id, id))
 
-    const [member] = await smartDb
-      .select(members)
-      .where(eq(members.id, fine.member_id))
-
     if (member?.phone) {
       await sendSms({
         to: member.phone,
-        message: `Dear ${member.full_name}, your fine of UGX ${(fine.amount / 100).toLocaleString()} (Ref: ${fine.fine_ref}) has been marked as paid. Thank you. - SACCO`,
+        message: `Dear ${member.full_name}, your fine of UGX ${(fine.amount / 100).toLocaleString()} (Ref: ${fine.fine_ref}) has been paid. Thank you. - SACCO`,
       })
     }
 
@@ -145,9 +179,7 @@ export async function waiveFineAction(
   waiver_reason: string
 ): Promise<FineFormState> {
   try {
-    const [fine] = await smartDb
-      .select(fines)
-      .where(eq(fines.id, id))
+    const [fine] = await smartDb.select(fines).where(eq(fines.id, id))
 
     if (!fine) return { error: "Fine not found." }
 

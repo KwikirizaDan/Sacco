@@ -1,7 +1,18 @@
 "use server"
 
 import { smartDb } from "@/lib/db/database-adapter"
-import { members, loans, savingsAccounts, fines, transactions, notifications, type Loan, type SavingsAccount, type Fine, type Transaction } from "@/db/schema"
+import {
+  members,
+  loans,
+  savingsAccounts,
+  fines,
+  transactions,
+  notifications,
+  type Loan,
+  type SavingsAccount,
+  type Fine,
+  type Transaction,
+} from "@/db/schema"
 import { revalidatePath } from "next/cache"
 import { generateMemberCode } from "@/lib/member-code"
 import { sendSms, smsTemplates } from "@/lib/sms"
@@ -17,12 +28,27 @@ const memberSchema = z.object({
   email: z.string().email("Invalid email").optional().or(z.literal("")),
   phone: z.string().min(9, "Valid phone number required"),
   national_id: z.string().min(5, "National ID is required"),
-  date_of_birth: z.string().optional().transform((v) => v === "" ? undefined : v),
-  address: z.string().optional().transform((v) => v === "" ? undefined : v),
-  next_of_kin: z.string().optional().transform((v) => v === "" ? undefined : v),
-  next_of_kin_phone: z.string().optional().transform((v) => v === "" ? undefined : v),
+  date_of_birth: z
+    .string()
+    .optional()
+    .transform((v) => (v === "" ? undefined : v)),
+  address: z
+    .string()
+    .optional()
+    .transform((v) => (v === "" ? undefined : v)),
+  next_of_kin: z
+    .string()
+    .optional()
+    .transform((v) => (v === "" ? undefined : v)),
+  next_of_kin_phone: z
+    .string()
+    .optional()
+    .transform((v) => (v === "" ? undefined : v)),
   status: z.enum(["active", "suspended", "exited"]).default("active"),
-  photo_url: z.string().optional().transform((v) => v === "" ? undefined : v),
+  photo_url: z
+    .string()
+    .optional()
+    .transform((v) => (v === "" ? undefined : v)),
 })
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -122,9 +148,7 @@ export async function editMemberAction(
       }
     }
 
-    const [existing] = await smartDb
-      .select(members)
-      .where(eq(members.id, id))
+    const [existing] = await smartDb.select(members).where(eq(members.id, id))
 
     if (!existing) return { error: "Member not found." }
 
@@ -163,15 +187,45 @@ export async function editMemberAction(
 
 // ─── Delete Member ────────────────────────────────────────────────────────────
 
-export async function deleteMemberAction(
-  id: string
-): Promise<MemberFormState> {
+export async function deleteMemberAction(id: string): Promise<MemberFormState> {
   try {
-    const [existing] = await smartDb
-      .select(members)
-      .where(eq(members.id, id))
+    const [existing] = await smartDb.select(members).where(eq(members.id, id))
 
     if (!existing) return { error: "Member not found." }
+
+    const memberLoans = await smartDb
+      .select(loans)
+      .where(eq(loans.member_id, id))
+    const memberSavings = await smartDb
+      .select(savingsAccounts)
+      .where(eq(savingsAccounts.member_id, id))
+    const memberFines = await smartDb
+      .select(fines)
+      .where(eq(fines.member_id, id))
+
+    const hasActiveLoans = memberLoans.some((l: any) =>
+      ["active", "disbursed", "pending"].includes(l.status)
+    )
+    const hasSavings = memberSavings.some((s: any) => s.balance > 0)
+    const hasPendingFines = memberFines.some((f: any) => f.status === "pending")
+
+    if (hasActiveLoans) {
+      return {
+        error: "Cannot delete member with active loans. Settle loans first.",
+      }
+    }
+    if (hasSavings) {
+      return {
+        error:
+          "Cannot delete member with savings balance. Withdraw funds first.",
+      }
+    }
+    if (hasPendingFines) {
+      return {
+        error:
+          "Cannot delete member with pending fines. Pay or waive fines first.",
+      }
+    }
 
     await smartDb.delete(members).where(eq(members.id, id))
 
@@ -190,9 +244,7 @@ export async function updateMemberStatusAction(
   status: "active" | "suspended" | "exited"
 ): Promise<MemberFormState> {
   try {
-    const [existing] = await smartDb
-      .select(members)
-      .where(eq(members.id, id))
+    const [existing] = await smartDb.select(members).where(eq(members.id, id))
 
     if (!existing) return { error: "Member not found." }
 
@@ -229,9 +281,7 @@ export async function sendMemberSmsAction(
   message: string
 ): Promise<MemberFormState> {
   try {
-    const [member] = await smartDb
-      .select(members)
-      .where(eq(members.id, id))
+    const [member] = await smartDb.select(members).where(eq(members.id, id))
 
     if (!member) return { error: "Member not found." }
     if (!member.phone) return { error: "Member has no phone number." }
@@ -281,17 +331,20 @@ export async function getMemberStatsAction(id: string) {
     const memberTransactions = await smartDb
       .select(transactions)
       .where(
-        and(
-          eq(transactions.member_id, id),
-          eq(transactions.sacco_id, SACCO_ID)
-        )
+        and(eq(transactions.member_id, id), eq(transactions.sacco_id, SACCO_ID))
       )
       .orderBy(desc(transactions.created_at))
       .limit(20)
 
-    const totalSavings = memberSavings.reduce((sum: number, s: SavingsAccount) => sum + s.balance, 0)
+    const totalSavings = memberSavings.reduce(
+      (sum: number, s: SavingsAccount) => sum + s.balance,
+      0
+    )
     const activeLoans = memberLoans.filter((l: Loan) => l.status === "active")
-    const totalBorrowed = memberLoans.reduce((sum: number, l: Loan) => sum + l.amount, 0)
+    const totalBorrowed = memberLoans.reduce(
+      (sum: number, l: Loan) => sum + l.amount,
+      0
+    )
     const totalRepaid = memberLoans.reduce(
       (sum: number, l: Loan) => sum + (l.amount - l.balance),
       0
@@ -301,7 +354,10 @@ export async function getMemberStatsAction(id: string) {
       0
     )
     const pendingFines = memberFines.filter((f: Fine) => f.status === "pending")
-    const totalFines = pendingFines.reduce((sum: number, f: Fine) => sum + f.amount, 0)
+    const totalFines = pendingFines.reduce(
+      (sum: number, f: Fine) => sum + f.amount,
+      0
+    )
 
     return {
       loans: memberLoans,

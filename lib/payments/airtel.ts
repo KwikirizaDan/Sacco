@@ -13,6 +13,10 @@ export async function requestAirtelPayment({
   const clientId = process.env.AIRTEL_CLIENT_ID
   const clientSecret = process.env.AIRTEL_CLIENT_SECRET
 
+  if (!baseUrl || !clientId || !clientSecret) {
+    throw new Error("Airtel payment configuration missing")
+  }
+
   const tokenRes = await fetch(`${baseUrl}/auth/oauth2/token`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

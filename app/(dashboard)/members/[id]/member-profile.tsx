@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { pdf } from "@react-pdf/renderer"
 import { formatUGX, formatDate } from "@/lib/utils/format"
 import { toast } from "sonner"
 import {
@@ -14,6 +15,7 @@ import {
   Wallet,
   Receipt,
   Flag,
+  FileText,
   Edit,
   Trash2,
   MoreVertical,
@@ -23,6 +25,7 @@ import {
   XCircle,
   Clock,
   AlertCircle,
+  Loader2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
@@ -53,7 +56,22 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import type { Member, Loan, SavingsAccount, Fine, Transaction } from "@/db/schema"
+import type {
+  Member,
+  Loan,
+  SavingsAccount,
+  Fine,
+  Transaction,
+} from "@/db/schema"
+import { MemberIdCardDocument } from "@/lib/pdf/member-id-card"
+import { ApplicationFormDocument } from "@/lib/pdf/application-form"
+
+const SACCO = {
+  name: "My SACCO",
+  address: "Kampala, Uganda",
+  phone: "+256 700 000 000",
+  email: "info@sacco.ug",
+}
 
 interface MemberProfileProps {
   member: Member
@@ -79,6 +97,8 @@ export function MemberProfile({
 }: MemberProfileProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [loadingId, setLoadingId] = useState(false)
+  const [loadingForm, setLoadingForm] = useState(false)
   const [showSmsDialog, setShowSmsDialog] = useState(false)
   const [showLoanDialog, setShowLoanDialog] = useState(false)
   const [showSavingsDialog, setShowSavingsDialog] = useState(false)
@@ -94,7 +114,57 @@ export function MemberProfile({
   const [fineReason, setFineReason] = useState("")
   const [fineDescription, setFineDescription] = useState("")
 
-  const handleStatusChange = async (status: "active" | "suspended" | "exited") => {
+  const downloadIdCard = async () => {
+    setLoadingId(true)
+    try {
+      const doc = (
+        <MemberIdCardDocument
+          member={member}
+          sacco={{ name: SACCO.name }}
+        />
+      )
+      const blob = await pdf(doc).toBlob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `${member.member_code}-ID-Card.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success("ID Card downloaded")
+    } catch {
+      toast.error("Failed to generate ID Card")
+    } finally {
+      setLoadingId(false)
+    }
+  }
+
+  const downloadApplicationForm = async () => {
+    setLoadingForm(true)
+    try {
+      const doc = (
+        <ApplicationFormDocument
+          member={member}
+          sacco={SACCO}
+        />
+      )
+      const blob = await pdf(doc).toBlob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `${member.member_code}-Application-Form.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success("Application Form downloaded")
+    } catch {
+      toast.error("Failed to generate Application Form")
+    } finally {
+      setLoadingForm(false)
+    }
+  }
+
+  const handleStatusChange = async (
+    status: "active" | "suspended" | "exited"
+  ) => {
     setIsLoading(true)
     try {
       const result = await updateMemberStatusAction(member.id, status)
@@ -269,7 +339,7 @@ export function MemberProfile({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
             <User className="h-8 w-8 text-primary" />
           </div>
           <div>
@@ -292,6 +362,25 @@ export function MemberProfile({
                 <Phone className="mr-2 h-4 w-4" />
                 Send SMS
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={downloadIdCard} disabled={loadingId}>
+                {loadingId ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <CreditCard className="mr-2 h-4 w-4" />
+                )}
+                {loadingId ? "Generating..." : "Generate ID Card"}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={downloadApplicationForm}
+                disabled={loadingForm}
+              >
+                {loadingForm ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <FileText className="mr-2 h-4 w-4" />
+                )}
+                {loadingForm ? "Generating..." : "Application Form"}
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleStatusChange("active")}>
                 <CheckCircle className="mr-2 h-4 w-4" />
                 Set Active
@@ -310,14 +399,16 @@ export function MemberProfile({
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Savings</CardTitle>
             <Wallet className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatUGX(stats.totalSavings)}</div>
+            <div className="text-2xl font-bold">
+              {formatUGX(stats.totalSavings)}
+            </div>
           </CardContent>
         </Card>
         <Card>
@@ -326,7 +417,9 @@ export function MemberProfile({
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatUGX(stats.totalLoans)}</div>
+            <div className="text-2xl font-bold">
+              {formatUGX(stats.totalLoans)}
+            </div>
           </CardContent>
         </Card>
         <Card>
@@ -335,7 +428,9 @@ export function MemberProfile({
             <Flag className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatUGX(stats.totalFines)}</div>
+            <div className="text-2xl font-bold">
+              {formatUGX(stats.totalFines)}
+            </div>
           </CardContent>
         </Card>
         <Card>
@@ -355,7 +450,7 @@ export function MemberProfile({
           <CardTitle>Member Details</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="flex items-center gap-2">
               <Phone className="h-4 w-4 text-muted-foreground" />
               <span>{member.phone || "No phone"}</span>
@@ -395,7 +490,7 @@ export function MemberProfile({
           {loans.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-8">
-                <CreditCard className="h-12 w-12 text-muted-foreground mb-4" />
+                <CreditCard className="mb-4 h-12 w-12 text-muted-foreground" />
                 <p className="text-muted-foreground">No loans found</p>
               </CardContent>
             </Card>
@@ -438,8 +533,10 @@ export function MemberProfile({
           {savings.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-8">
-                <Wallet className="h-12 w-12 text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">No savings accounts found</p>
+                <Wallet className="mb-4 h-12 w-12 text-muted-foreground" />
+                <p className="text-muted-foreground">
+                  No savings accounts found
+                </p>
               </CardContent>
             </Card>
           ) : (
@@ -455,7 +552,9 @@ export function MemberProfile({
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium">{formatUGX(account.balance)}</p>
+                        <p className="font-medium">
+                          {formatUGX(account.balance)}
+                        </p>
                         <p className="text-sm text-muted-foreground">
                           {account.is_locked ? "Locked" : "Active"}
                         </p>
@@ -478,7 +577,7 @@ export function MemberProfile({
           {fines.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-8">
-                <Flag className="h-12 w-12 text-muted-foreground mb-4" />
+                <Flag className="mb-4 h-12 w-12 text-muted-foreground" />
                 <p className="text-muted-foreground">No fines found</p>
               </CardContent>
             </Card>
@@ -499,7 +598,11 @@ export function MemberProfile({
                       </div>
                       <div className="text-right">
                         <p className="font-medium">{formatUGX(fine.amount)}</p>
-                        <Badge variant={fine.status === "paid" ? "default" : "secondary"}>
+                        <Badge
+                          variant={
+                            fine.status === "paid" ? "default" : "secondary"
+                          }
+                        >
                           {fine.status}
                         </Badge>
                       </div>
@@ -515,7 +618,7 @@ export function MemberProfile({
           {transactions.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-8">
-                <Receipt className="h-12 w-12 text-muted-foreground mb-4" />
+                <Receipt className="mb-4 h-12 w-12 text-muted-foreground" />
                 <p className="text-muted-foreground">No transactions found</p>
               </CardContent>
             </Card>
@@ -526,13 +629,16 @@ export function MemberProfile({
                   <CardContent className="pt-6">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
-                        {transaction.type === "savings_deposit" || transaction.type === "fine_payment" ? (
+                        {transaction.type === "savings_deposit" ||
+                        transaction.type === "fine_payment" ? (
                           <ArrowDownLeft className="h-4 w-4 text-green-500" />
                         ) : (
                           <ArrowUpRight className="h-4 w-4 text-red-500" />
                         )}
                         <div>
-                          <p className="font-medium">{transaction.narration || transaction.type}</p>
+                          <p className="font-medium">
+                            {transaction.narration || transaction.type}
+                          </p>
                           <p className="text-sm text-muted-foreground">
                             {formatDate(transaction.created_at)}
                           </p>
@@ -542,16 +648,23 @@ export function MemberProfile({
                         <p
                           className={cn(
                             "font-medium",
-                            transaction.type === "savings_deposit" || transaction.type === "fine_payment"
+                            transaction.type === "savings_deposit" ||
+                              transaction.type === "fine_payment"
                               ? "text-green-600"
                               : "text-red-600"
                           )}
                         >
-                          {transaction.type === "savings_deposit" || transaction.type === "fine_payment" ? "+" : "-"}
+                          {transaction.type === "savings_deposit" ||
+                          transaction.type === "fine_payment"
+                            ? "+"
+                            : "-"}
                           {formatUGX(transaction.amount)}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          Balance: {transaction.balance_after != null ? formatUGX(transaction.balance_after) : "N/A"}
+                          Balance:{" "}
+                          {transaction.balance_after != null
+                            ? formatUGX(transaction.balance_after)
+                            : "N/A"}
                         </p>
                       </div>
                     </div>
@@ -690,7 +803,10 @@ export function MemberProfile({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSavingsDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowSavingsDialog(false)}
+            >
               Cancel
             </Button>
             <Button onClick={handleAddSavings} disabled={isLoading}>

@@ -1,4 +1,3 @@
-// @ts-expect-error - drizzle-kit types issue
 import { defineConfig } from "drizzle-kit"
 import * as dotenv from "dotenv"
 

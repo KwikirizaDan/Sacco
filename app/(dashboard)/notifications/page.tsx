@@ -5,6 +5,8 @@ import { eq } from "drizzle-orm"
 import { SACCO_ID } from "@/lib/constants"
 import { NotificationsClient } from "./components/notifications-client"
 
+export const dynamic = "force-dynamic"
+
 export default async function NotificationsPage() {
   const [allNotifications, allMembers] = await Promise.all([
     getAllNotifications(),

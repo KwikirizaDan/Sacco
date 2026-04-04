@@ -1,10 +1,19 @@
 import { db } from "@/db"
-import { members, loans, savingsAccounts, fines, transactions } from "@/db/schema"
+import {
+  members,
+  loans,
+  savingsAccounts,
+  fines,
+  transactions,
+} from "@/db/schema"
 import { count, sum, eq, desc } from "drizzle-orm"
 import { KpiCards } from "./components/kpi-cards"
 import { SavingsLoanChart } from "./components/savings-loan-chart"
 import { LoanStatusChart } from "./components/loan-status-chart"
 import { RecentTransactions } from "./components/recent-transactions"
+
+export const dynamic = "force-dynamic"
+export const revalidate = 60
 
 export default async function DashboardPage() {
   // Run all queries in parallel for maximum performance
@@ -21,9 +30,18 @@ export default async function DashboardPage() {
     db.select({ count: count() }).from(members),
     db.select({ count: count() }).from(loans).where(eq(loans.status, "active")),
     db.select({ total: sum(savingsAccounts.balance) }).from(savingsAccounts),
-    db.select({ count: count() }).from(fines).where(eq(fines.status, "pending")),
-    db.select({ total: sum(loans.amount) }).from(loans).where(eq(loans.status, "active")),
-    db.select({ count: count() }).from(loans).where(eq(loans.status, "pending")),
+    db
+      .select({ count: count() })
+      .from(fines)
+      .where(eq(fines.status, "pending")),
+    db
+      .select({ total: sum(loans.amount) })
+      .from(loans)
+      .where(eq(loans.status, "active")),
+    db
+      .select({ count: count() })
+      .from(loans)
+      .where(eq(loans.status, "pending")),
     db
       .select({
         id: transactions.id,
@@ -55,7 +73,7 @@ export default async function DashboardPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground text-sm mt-1">
+        <p className="mt-1 text-sm text-muted-foreground">
           Welcome back! Here's what's happening with your SACCO.
         </p>
       </div>
@@ -69,7 +87,7 @@ export default async function DashboardPage() {
         pendingLoans={pendingLoans.count}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <SavingsLoanChart />
         </div>

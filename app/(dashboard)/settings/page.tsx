@@ -7,15 +7,22 @@ import {
 } from "@/db/queries/settings"
 import { SettingsClient } from "./components/settings-client"
 
+export const dynamic = "force-dynamic"
+
 export default async function SettingsPage() {
-  const [sacco, interestRates, loanCategories, savingsCategories, fineCategories] =
-    await Promise.all([
-      getSaccoSettings(),
-      getInterestRates(),
-      getLoanCategories(),
-      getSavingsCategories(),
-      getFineCategories(),
-    ])
+  const [
+    sacco,
+    interestRates,
+    loanCategories,
+    savingsCategories,
+    fineCategories,
+  ] = await Promise.all([
+    getSaccoSettings(),
+    getInterestRates(),
+    getLoanCategories(),
+    getSavingsCategories(),
+    getFineCategories(),
+  ])
 
   return (
     <SettingsClient
