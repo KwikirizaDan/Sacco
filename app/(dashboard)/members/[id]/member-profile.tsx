@@ -26,6 +26,7 @@ import {
   Clock,
   AlertCircle,
   Loader2,
+  Plus,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
@@ -34,6 +35,7 @@ import {
   assignLoanAction,
   addSavingsAction,
 } from "../actions"
+import { topUpLoanAction } from "../../loans/actions"
 import { addFineAction } from "../../fines/actions"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -56,6 +58,13 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import type {
   Member,
   Loan,
@@ -103,6 +112,8 @@ export function MemberProfile({
   const [showLoanDialog, setShowLoanDialog] = useState(false)
   const [showSavingsDialog, setShowSavingsDialog] = useState(false)
   const [showFineDialog, setShowFineDialog] = useState(false)
+  const [showTopUpDialog, setShowTopUpDialog] = useState(false)
+  const [selectedLoan, setSelectedLoan] = useState<any>(null)
   const [smsMessage, setSmsMessage] = useState("")
   const [loanAmount, setLoanAmount] = useState("")
   const [loanInterestRate, setLoanInterestRate] = useState("")
@@ -113,15 +124,16 @@ export function MemberProfile({
   const [fineAmount, setFineAmount] = useState("")
   const [fineReason, setFineReason] = useState("")
   const [fineDescription, setFineDescription] = useState("")
+  const [topUpAmount, setTopUpAmount] = useState("")
+  const [topUpReason, setTopUpReason] = useState("")
+  const [topUpPaymentMethod, setTopUpPaymentMethod] = useState("cash")
+  const [topUpNotes, setTopUpNotes] = useState("")
 
   const downloadIdCard = async () => {
     setLoadingId(true)
     try {
       const doc = (
-        <MemberIdCardDocument
-          member={member}
-          sacco={{ name: SACCO.name }}
-        />
+        <MemberIdCardDocument member={member} sacco={{ name: SACCO.name }} />
       )
       const blob = await pdf(doc).toBlob()
       const url = URL.createObjectURL(blob)
@@ -141,12 +153,7 @@ export function MemberProfile({
   const downloadApplicationForm = async () => {
     setLoadingForm(true)
     try {
-      const doc = (
-        <ApplicationFormDocument
-          member={member}
-          sacco={SACCO}
-        />
-      )
+      const doc = <ApplicationFormDocument member={member} sacco={SACCO} />
       const blob = await pdf(doc).toBlob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
@@ -283,6 +290,39 @@ export function MemberProfile({
         router.refresh()
       } else {
         toast.error(result.error || "Failed to add fine")
+      }
+    } catch (error) {
+      toast.error("An error occurred")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleTopUpLoan = async () => {
+    if (!topUpAmount || !topUpReason) {
+      toast.error("Please fill in all required fields")
+      return
+    }
+    setIsLoading(true)
+    try {
+      const formData = new FormData()
+      formData.append("loan_id", selectedLoan.id)
+      formData.append("amount", topUpAmount)
+      formData.append("reason", topUpReason)
+      formData.append("payment_method", topUpPaymentMethod)
+      formData.append("notes", topUpNotes)
+      const result = await topUpLoanAction({}, formData)
+      if (result.success) {
+        toast.success("Loan top-up processed successfully")
+        setShowTopUpDialog(false)
+        setSelectedLoan(null)
+        setTopUpAmount("")
+        setTopUpReason("")
+        setTopUpPaymentMethod("cash")
+        setTopUpNotes("")
+        router.refresh()
+      } else {
+        toast.error(result.error || "Failed to process top-up")
       }
     } catch (error) {
       toast.error("An error occurred")
@@ -509,11 +549,29 @@ export function MemberProfile({
                           </p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-medium">{formatUGX(loan.amount)}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Balance: {formatUGX(loan.balance)}
-                        </p>
+                      <div className="flex items-center gap-2">
+                        {(loan.status === "active" ||
+                          loan.status === "disbursed") && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedLoan(loan)
+                              setShowTopUpDialog(true)
+                            }}
+                          >
+                            <Plus className="mr-1 h-3 w-3" />
+                            Top Up
+                          </Button>
+                        )}
+                        <div className="text-right">
+                          <p className="font-medium">
+                            {formatUGX(loan.amount)}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Balance: {formatUGX(loan.balance)}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
@@ -861,6 +919,80 @@ export function MemberProfile({
             </Button>
             <Button onClick={handleAddFine} disabled={isLoading}>
               {isLoading ? "Adding..." : "Add Fine"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Top Up Dialog */}
+      <Dialog open={showTopUpDialog} onOpenChange={setShowTopUpDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Top Up Loan</DialogTitle>
+            <DialogDescription>
+              Add additional funds to loan {selectedLoan?.loan_ref}. Current
+              balance: {formatUGX(selectedLoan?.balance || 0)}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="topUpAmount">Top-up Amount (UGX)</Label>
+              <Input
+                id="topUpAmount"
+                type="number"
+                placeholder="Enter amount"
+                value={topUpAmount}
+                onChange={(e) => setTopUpAmount(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="topUpReason">Reason *</Label>
+              <Input
+                id="topUpReason"
+                placeholder="e.g., Additional purchase, Emergency funds"
+                value={topUpReason}
+                onChange={(e) => setTopUpReason(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="topUpPaymentMethod">Payment Method</Label>
+              <Select
+                value={topUpPaymentMethod}
+                onValueChange={(value) => value && setTopUpPaymentMethod(value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select payment method" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="mobile_money">Mobile Money</SelectItem>
+                  <SelectItem value="bank">Bank Transfer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="topUpNotes">Notes</Label>
+              <Textarea
+                id="topUpNotes"
+                placeholder="Additional notes (optional)"
+                value={topUpNotes}
+                onChange={(e) => setTopUpNotes(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowTopUpDialog(false)
+                setSelectedLoan(null)
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleTopUpLoan} disabled={isLoading}>
+              {isLoading ? "Processing..." : "Top Up Loan"}
             </Button>
           </DialogFooter>
         </DialogContent>

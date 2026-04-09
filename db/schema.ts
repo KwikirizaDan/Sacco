@@ -212,6 +212,24 @@ export const loanExtensions = pgTable("loan_extensions", {
   created_at: timestamp("created_at").defaultNow(),
 })
 
+// ─── Loan Top Ups ─────────────────────────────────────────────────────────────
+
+export const loanTopUps = pgTable("loan_top_ups", {
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  loan_id: uuid("loan_id")
+    .references(() => loans.id)
+    .notNull(),
+  amount: integer("amount").notNull(), // Top up amount in cents
+  reason: text("reason"),
+  payment_method: paymentMethodEnum("payment_method").default("cash"),
+  payment_reference: text("payment_reference"), // Reference for payment
+  notes: text("notes"),
+  processed_by: uuid("processed_by").references(() => members.id), // Admin who processed the top up
+  created_at: timestamp("created_at").defaultNow(),
+})
+
 // ─── Loan Guarantors ──────────────────────────────────────────────────────────
 
 export const loanGuarantors = pgTable("loan_guarantors", {

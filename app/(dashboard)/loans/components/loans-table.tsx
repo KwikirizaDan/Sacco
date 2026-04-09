@@ -39,23 +39,33 @@ import {
   Banknote,
   Trash2,
   FileText,
+  Plus,
 } from "lucide-react"
 import { formatUGX, formatDate } from "@/lib/utils/format"
 import { toast } from "sonner"
-import { approveLoanAction, disburseLoanAction, deleteLoanAction } from "../actions"
+import {
+  approveLoanAction,
+  disburseLoanAction,
+  deleteLoanAction,
+} from "../actions"
 import { RepayDialog } from "./repay-dialog"
 import { DeclineDialog } from "./decline-dialog"
+import { TopUpDialog } from "./top-up-dialog"
 import { LoanPdfButton } from "./loan-pdf-button"
 
 const statusColors: Record<string, string> = {
-  pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+  pending:
+    "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
   approved: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-  disbursed: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
-  active: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+  disbursed:
+    "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
+  active:
+    "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
   settled: "bg-gray-100 text-gray-600 dark:bg-gray-900/30 dark:text-gray-400",
   declined: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
   defaulted: "bg-red-200 text-red-900 dark:bg-red-900/50 dark:text-red-300",
-  extended: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
+  extended:
+    "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
 }
 
 export function LoansTable({ loans }: { loans: any[] }) {
@@ -63,6 +73,7 @@ export function LoansTable({ loans }: { loans: any[] }) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [repayLoan, setRepayLoan] = useState<any>(null)
   const [declineLoan, setDeclineLoan] = useState<any>(null)
+  const [topUpLoan, setTopUpLoan] = useState<any>(null)
 
   const columns: ColumnDef<any>[] = [
     {
@@ -71,7 +82,7 @@ export function LoansTable({ loans }: { loans: any[] }) {
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="p-0 h-auto font-semibold hover:bg-transparent"
+          className="h-auto p-0 font-semibold hover:bg-transparent"
         >
           Loan Ref
           <ArrowUpDown className="ml-2 h-3 w-3" />
@@ -87,7 +98,7 @@ export function LoansTable({ loans }: { loans: any[] }) {
       cell: ({ row }) => (
         <div>
           <p className="font-medium">{row.original.member_name}</p>
-          <p className="text-xs text-muted-foreground font-mono">
+          <p className="font-mono text-xs text-muted-foreground">
             {row.original.member_code}
           </p>
         </div>
@@ -118,7 +129,7 @@ export function LoansTable({ loans }: { loans: any[] }) {
       header: "Status",
       cell: ({ row }) => (
         <span
-          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
             statusColors[row.original.status] ?? ""
           }`}
         >
@@ -144,7 +155,7 @@ export function LoansTable({ loans }: { loans: any[] }) {
         return (
           <DropdownMenu>
             <DropdownMenuTrigger
-              className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8 p-0"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md p-0 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
               onClick={(e) => e.stopPropagation()}
             >
               <MoreHorizontal className="h-4 w-4" />
@@ -215,16 +226,28 @@ export function LoansTable({ loans }: { loans: any[] }) {
               )}
 
               {(loan.status === "active" || loan.status === "disbursed") && (
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setRepayLoan(loan)
-                  }}
-                  className="text-blue-600"
-                >
-                  <Banknote className="mr-2 h-4 w-4" />
-                  Record Repayment
-                </DropdownMenuItem>
+                <>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setRepayLoan(loan)
+                    }}
+                    className="text-blue-600"
+                  >
+                    <Banknote className="mr-2 h-4 w-4" />
+                    Record Repayment
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setTopUpLoan(loan)
+                    }}
+                    className="text-green-600"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Top Up Loan
+                  </DropdownMenuItem>
+                </>
               )}
 
               <DropdownMenuSeparator />
@@ -271,17 +294,17 @@ export function LoansTable({ loans }: { loans: any[] }) {
 
   if (loans.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-muted-foreground border rounded-lg">
-        <Banknote className="h-12 w-12 mb-3 opacity-30" />
+      <div className="flex flex-col items-center justify-center rounded-lg border py-20 text-muted-foreground">
+        <Banknote className="mb-3 h-12 w-12 opacity-30" />
         <p className="text-lg font-medium">No loans found</p>
-        <p className="text-sm mt-1">Add your first loan to get started</p>
+        <p className="mt-1 text-sm">Add your first loan to get started</p>
       </div>
     )
   }
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border overflow-hidden overflow-x-auto">
+      <div className="overflow-hidden overflow-x-auto rounded-lg border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((hg) => (
@@ -306,10 +329,7 @@ export function LoansTable({ loans }: { loans: any[] }) {
               >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id}>
-                    {flexRender(
-                      cell.column.columnDef.cell,
-                      cell.getContext()
-                    )}
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>
                 ))}
               </TableRow>
@@ -333,6 +353,13 @@ export function LoansTable({ loans }: { loans: any[] }) {
           loan={declineLoan}
           open={!!declineLoan}
           onClose={() => setDeclineLoan(null)}
+        />
+      )}
+      {topUpLoan && (
+        <TopUpDialog
+          loan={topUpLoan}
+          open={!!topUpLoan}
+          onClose={() => setTopUpLoan(null)}
         />
       )}
     </div>

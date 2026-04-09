@@ -7,6 +7,7 @@ import {
   members,
   transactions,
   interestRates,
+  loanTopUps,
   type InterestRate,
 } from "@/db/schema"
 import { revalidatePath } from "next/cache"
@@ -391,6 +392,90 @@ export async function repayLoanAction(
   } catch (err) {
     console.error(err)
     return { error: "Failed to record repayment." }
+  }
+}
+
+// ─── Top Up Loan ──────────────────────────────────────────────────────────────
+
+export async function topUpLoanAction(
+  prevState: LoanFormState,
+  formData: FormData
+): Promise<LoanFormState> {
+  try {
+    const id = formData.get("loan_id") as string
+    const amountStr = (formData.get("amount") as string)?.replace(/,/g, "")
+    const amount = Math.round(parseFloat(amountStr || "0") * 100)
+    const reason = formData.get("reason") as string
+    const payment_method = (formData.get("payment_method") as string) || "cash"
+    const notes = formData.get("notes") as string
+
+    if (!amountStr || isNaN(amount) || amount <= 0)
+      return { error: "Valid amount required." }
+
+    const [loan] = await smartDb.select(loans).where(eq(loans.id, id))
+
+    if (!loan) return { error: "Loan not found." }
+    if (loan.status !== "active" && loan.status !== "disbursed")
+      return { error: "Loan must be active or disbursed to add top-up." }
+
+    const [member] = await smartDb
+      .select(members)
+      .where(eq(members.id, loan.member_id))
+
+    // Add top-up record
+    await smartDb.insert(loanTopUps).values({
+      loan_id: id,
+      amount,
+      reason,
+      payment_method: payment_method as any,
+      notes,
+      // processed_by: // TODO: Add current user/admin ID when authentication is implemented
+    })
+
+    // Update loan balance (add to balance since top-up increases the amount owed)
+    const newBalance = loan.balance + amount
+
+    await smartDb
+      .update(loans)
+      .set({
+        balance: newBalance,
+        updated_at: new Date(),
+      })
+      .where(eq(loans.id, id))
+
+    // Record transaction
+    await smartDb.insert(transactions).values({
+      sacco_id: SACCO_ID,
+      member_id: loan.member_id,
+      type: "loan_disbursement", // Top-up is essentially additional disbursement
+      amount,
+      balance_after: newBalance,
+      narration: `Loan top-up - ${loan.loan_ref}${reason ? ` - ${reason}` : ""}`,
+      payment_method:
+        payment_method === "mobile_money"
+          ? "flutterwave"
+          : (payment_method as any),
+    })
+
+    // Send SMS notification
+    if (member?.phone) {
+      try {
+        await sendSms({
+          to: member.phone,
+          message: `Dear ${member.full_name}, your loan ${loan.loan_ref} has been topped up with UGX ${(amount / 100).toLocaleString()}. New balance: UGX ${(newBalance / 100).toLocaleString()}. - SACCO`,
+        })
+      } catch (smsError) {
+        console.error("[Loan Top-up] SMS notification failed:", smsError)
+      }
+    }
+
+    revalidatePath("/loans")
+    revalidatePath(`/loans/${id}`)
+    revalidatePath(`/members/${loan.member_id}`)
+    return { success: true }
+  } catch (err) {
+    console.error(err)
+    return { error: "Failed to process loan top-up." }
   }
 }
 
