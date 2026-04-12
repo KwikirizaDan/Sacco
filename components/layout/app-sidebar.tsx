@@ -59,7 +59,7 @@ const navGroups = [
     label: "People",
     items: [
       { title: "Members", href: "/members", icon: Users },
-      { title: "Users", href: "/dashboard/users", icon: UserCog },
+      { title: "Users", href: "/users", icon: UserCog },
     ],
   },
   {
