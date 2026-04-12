@@ -128,11 +128,16 @@ export async function checkOnboarding(): Promise<{
 }> {
   const user = await getCurrentUser()
   if (!user) return { needsOnboarding: false, sacco: null }
-  const [sacco] = await db
-    .select()
-    .from(saccos)
-    .where(eq(saccos.id, user.saccoId))
-    .limit(1)
-  const needsOnboarding = !sacco?.onboarding_completed && user.role === "admin"
-  return { needsOnboarding, sacco: sacco ?? null }
+  try {
+    const [sacco] = await db
+      .select()
+      .from(saccos)
+      .where(eq(saccos.id, user.saccoId))
+      .limit(1)
+    const needsOnboarding =
+      !sacco?.onboarding_completed && user.role === "admin"
+    return { needsOnboarding, sacco: sacco ?? null }
+  } catch {
+    return { needsOnboarding: false, sacco: null }
+  }
 }
