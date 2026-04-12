@@ -21,6 +21,10 @@ const PUBLIC_PATHS = [
 ]
 
 export async function middleware(request: NextRequest) {
+  if (!process.env.SESSION_SECRET) {
+    throw new Error("SESSION_SECRET environment variable is not set")
+  }
+
   const { pathname } = request.nextUrl
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p))
   if (isPublic) return NextResponse.next()

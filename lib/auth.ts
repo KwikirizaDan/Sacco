@@ -25,6 +25,9 @@ const SESSION_OPTIONS = {
 }
 
 export async function getSession(): Promise<IronSession<SessionData>> {
+  if (!process.env.SESSION_SECRET) {
+    throw new Error("SESSION_SECRET environment variable is not set")
+  }
   const cookieStore = await cookies()
   return getIronSession<SessionData>(cookieStore, SESSION_OPTIONS)
 }
