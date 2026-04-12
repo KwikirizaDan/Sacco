@@ -207,15 +207,19 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                   pathname === item.href || pathname.startsWith(item.href + "/")
                 return (
                   <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton isActive={isActive} tooltip={item.title}>
-                      <Link
-                        href={item.href}
-                        className="flex w-full items-center gap-2"
-                      >
-                        <item.icon className="h-4 w-4 shrink-0" />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
+                    <SidebarMenuButton
+                      isActive={isActive}
+                      tooltip={item.title}
+                      render={
+                        <Link
+                          href={item.href}
+                          className="flex w-full items-center gap-2"
+                        >
+                          <item.icon className="h-4 w-4 shrink-0" />
+                          <span>{item.title}</span>
+                        </Link>
+                      }
+                    />
                   </SidebarMenuItem>
                 )
               })}
