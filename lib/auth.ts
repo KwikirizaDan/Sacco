@@ -52,7 +52,7 @@ export async function requireAuth(): Promise<SessionData> {
     const { redirect } = await import("next/navigation")
     redirect("/auth/login")
   }
-  return user
+  return user!
 }
 
 export async function requireRole(

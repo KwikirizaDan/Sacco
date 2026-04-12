@@ -44,7 +44,8 @@ const SACCO_ID = "00000000-0000-0000-0000-000000000001"
 
 const rand = (min: number, max: number) =>
   Math.floor(Math.random() * (max - min + 1)) + min
-const pick = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)]
+const pick = <T>(arr: readonly T[]): T =>
+  arr[Math.floor(Math.random() * arr.length)]
 const randDate = (start: Date, end: Date) =>
   new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()))
 const fmtDate = (d: Date) => d.toISOString().split("T")[0]

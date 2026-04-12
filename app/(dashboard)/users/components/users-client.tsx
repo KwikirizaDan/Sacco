@@ -523,7 +523,10 @@ export function UsersClient({ users, currentUser, canManageUsers }: Props) {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <Select value={roleFilter} onValueChange={setRoleFilter}>
+        <Select
+          value={roleFilter}
+          onValueChange={(value) => setRoleFilter(value || "all")}
+        >
           <SelectTrigger className="w-40">
             <SelectValue placeholder="All Roles" />
           </SelectTrigger>

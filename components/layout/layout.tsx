@@ -23,7 +23,13 @@ export default function DashboardLayout({
 }) {
   return (
     <SidebarProvider>
-      <AppSidebar />
+      <AppSidebar
+        user={{
+          fullName: "Admin User",
+          email: "admin@example.com",
+          role: "admin",
+        }}
+      />
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger className="-ml-1" />
@@ -44,9 +50,7 @@ export default function DashboardLayout({
             <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-primary" />
           </Button>
         </header>
-        <main className="flex flex-1 flex-col gap-4 p-6">
-          {children}
-        </main>
+        <main className="flex flex-1 flex-col gap-4 p-6">{children}</main>
       </SidebarInset>
     </SidebarProvider>
   )
