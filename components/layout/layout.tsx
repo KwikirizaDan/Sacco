@@ -17,6 +17,7 @@ import {
 import { Bell, Sun, Moon, Monitor } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useTheme } from "next-themes"
+import { usePathname } from "next/navigation"
 
 export default function DashboardLayout({
   children,
@@ -24,6 +25,7 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const { theme, setTheme } = useTheme()
+  const pathname = usePathname()
 
   const toggleTheme = () => {
     if (theme === "light") setTheme("dark")
@@ -32,6 +34,14 @@ export default function DashboardLayout({
   }
 
   const ThemeIcon = theme === "light" ? Sun : theme === "dark" ? Moon : Monitor
+
+  const pageTitle =
+    pathname === "/users"
+      ? "Users"
+      : pathname === "/dashboard"
+        ? "Dashboard"
+        : "Page"
+  const linkHref = "/"
 
   return (
     <SidebarProvider>
@@ -48,11 +58,11 @@ export default function DashboardLayout({
           <Breadcrumb className="flex-1">
             <BreadcrumbList>
               <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="/dashboard">SACCO</BreadcrumbLink>
+                <BreadcrumbLink href={linkHref}>SACCO</BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
-                <BreadcrumbPage>Dashboard</BreadcrumbPage>
+                <BreadcrumbPage>{pageTitle}</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
