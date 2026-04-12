@@ -7,12 +7,48 @@ import { getCurrentUser, checkOnboarding } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { AppSidebar } from "@/components/layout/app-sidebar"
 import {
-  SidebarProvider,
   SidebarInset,
+  SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
-import { Separator } from "@/components/ui/separator"
+import { Bell, Sun, Moon, Monitor } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { useTheme } from "next-themes"
 import "./globals.css"
+
+function ClientHeader({ user }: { user: { role: string } }) {
+  const { theme, setTheme } = useTheme()
+
+  const toggleTheme = () => {
+    if (theme === "light") setTheme("dark")
+    else if (theme === "dark") setTheme("system")
+    else setTheme("light")
+  }
+
+  const ThemeIcon = theme === "light" ? Sun : theme === "dark" ? Moon : Monitor
+
+  return (
+    <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
+      <SidebarTrigger className="-ml-1" />
+      <div className="flex-1" />
+      <Button variant="ghost" size="icon" className="relative">
+        <Bell className="h-5 w-5" />
+        <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-primary" />
+      </Button>
+      <Button variant="ghost" size="icon" onClick={toggleTheme}>
+        <ThemeIcon className="h-5 w-5" />
+      </Button>
+      <span
+        className={[
+          "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold",
+          ROLE_BADGE[user.role] ?? ROLE_BADGE.field_agent,
+        ].join(" ")}
+      >
+        {ROLE_LABELS[user.role] ?? user.role}
+      </span>
+    </header>
+  )
+}
 
 const ROLE_LABELS: Record<string, string> = {
   admin: "Administrator",
@@ -60,19 +96,7 @@ export default async function RootLayout({
       <SidebarProvider>
         <AppSidebar user={user} />
         <SidebarInset>
-          <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 h-4" />
-            <div className="flex-1" />
-            <span
-              className={[
-                "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold",
-                ROLE_BADGE[user.role] ?? ROLE_BADGE.field_agent,
-              ].join(" ")}
-            >
-              {ROLE_LABELS[user.role] ?? user.role}
-            </span>
-          </header>
+          <ClientHeader user={user} />
           <main className="flex-1 overflow-auto p-4 md:p-6">{children}</main>
         </SidebarInset>
       </SidebarProvider>
