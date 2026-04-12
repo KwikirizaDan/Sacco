@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { requireRole } from "@/lib/auth"
 import { db } from "@/db"
-import { saccos } from "@/db/schema"
+import { saccos, saccoUsers } from "@/db/schema"
 import { eq } from "drizzle-orm"
 
 export async function POST(req: Request) {
@@ -18,28 +18,58 @@ export async function POST(req: Request) {
       registration_number,
       primary_color,
     } = await req.json()
-    if (saccoId !== user.saccoId)
+    if (saccoId && saccoId !== user.saccoId)
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
     if (!name?.trim())
       return NextResponse.json(
         { error: "SACCO name is required." },
         { status: 400 }
       )
-    await db
-      .update(saccos)
-      .set({
-        name: name.trim(),
-        code: code?.trim() || null,
-        contact_email: contact_email?.trim() || null,
-        contact_phone: contact_phone?.trim() || null,
-        address: address?.trim() || null,
-        website: website?.trim() || null,
-        registration_number: registration_number?.trim() || null,
-        primary_color: primary_color || "#f97316",
-        onboarding_completed: true,
-        updated_at: new Date(),
-      })
-      .where(eq(saccos.id, saccoId))
+
+    let finalSaccoId = saccoId
+
+    if (!saccoId) {
+      // Create new sacco
+      const [newSacco] = await db
+        .insert(saccos)
+        .values({
+          name: name.trim(),
+          code: code?.trim() || null,
+          contact_email: contact_email?.trim() || null,
+          contact_phone: contact_phone?.trim() || null,
+          address: address?.trim() || null,
+          website: website?.trim() || null,
+          registration_number: registration_number?.trim() || null,
+          primary_color: primary_color || "#f97316",
+          onboarding_completed: true,
+        })
+        .returning({ id: saccos.id })
+      finalSaccoId = newSacco.id
+
+      // Attach user to the new sacco
+      await db
+        .update(saccoUsers)
+        .set({ sacco_id: finalSaccoId })
+        .where(eq(saccoUsers.id, user.userId))
+    } else {
+      // Update existing sacco
+      await db
+        .update(saccos)
+        .set({
+          name: name.trim(),
+          code: code?.trim() || null,
+          contact_email: contact_email?.trim() || null,
+          contact_phone: contact_phone?.trim() || null,
+          address: address?.trim() || null,
+          website: website?.trim() || null,
+          registration_number: registration_number?.trim() || null,
+          primary_color: primary_color || "#f97316",
+          onboarding_completed: true,
+          updated_at: new Date(),
+        })
+        .where(eq(saccos.id, saccoId))
+    }
+
     return NextResponse.json({ success: true })
   } catch (err) {
     console.error("[ONBOARDING]", err)

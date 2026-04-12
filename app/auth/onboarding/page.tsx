@@ -42,7 +42,7 @@ export default async function OnboardingPage() {
           </p>
         </div>
         <OnboardingWizard
-          saccoId={user.saccoId}
+          saccoId={user.saccoId ?? undefined}
           initialData={sacco ?? undefined}
           adminName={user.fullName}
         />

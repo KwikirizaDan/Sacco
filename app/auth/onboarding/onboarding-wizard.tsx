@@ -17,7 +17,7 @@ import { CheckCircle, ChevronRight, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface Props {
-  saccoId: string
+  saccoId?: string
   adminName: string
   initialData?: {
     name: string | null
