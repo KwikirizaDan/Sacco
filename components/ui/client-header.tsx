@@ -42,7 +42,12 @@ export function ClientHeader({ user }: ClientHeaderProps) {
         <Bell className="h-5 w-5" />
         <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-primary" />
       </Button>
-      <Button variant="ghost" size="icon" onClick={toggleTheme}>
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={toggleTheme}
+        suppressHydrationWarning
+      >
         <ThemeIcon className="h-5 w-5" />
       </Button>
       <span
