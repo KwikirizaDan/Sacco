@@ -37,6 +37,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { useSidebar } from "@/components/ui/sidebar"
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   user: { fullName: string; email: string; role: string }
@@ -139,6 +145,7 @@ const ROLE_BADGE: Record<string, string> = {
 export function AppSidebar({ user, ...props }: AppSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
+  const { state, isMobile } = useSidebar()
 
   const allowed = ROLE_NAV[user.role] ?? ROLE_NAV.field_agent
   const filteredGroups = navGroups
@@ -209,17 +216,11 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
                       isActive={isActive}
-                      tooltip={item.title}
-                      render={
-                        <Link
-                          href={item.href}
-                          className="flex w-full items-center gap-2"
-                        >
-                          <item.icon className="h-4 w-4 shrink-0" />
-                          <span>{item.title}</span>
-                        </Link>
-                      }
-                    />
+                      onClick={() => router.push(item.href)}
+                    >
+                      <item.icon className="h-4 w-4 shrink-0" />
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
                   </SidebarMenuItem>
                 )
               })}
