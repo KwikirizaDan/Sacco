@@ -134,6 +134,7 @@ async function seed() {
     const adminHash = await bcrypt.hash("Admin@1234", 12)
     const cashierHash = await bcrypt.hash("Cashier@1234", 12)
     const agentHash = await bcrypt.hash("Agent@1234", 12)
+    const danHash = await bcrypt.hash("password", 12)
 
     await db
       .insert(saccoUsers)
@@ -159,6 +160,17 @@ async function seed() {
           is_active: true,
           must_change_password: true,
           notes: "Additional admin for testing",
+        },
+        {
+          sacco_id: SACCO_ID,
+          full_name: "dan",
+          email: "dan@12",
+          phone: null,
+          password_hash: danHash,
+          role: "admin",
+          is_active: true,
+          must_change_password: false,
+          notes: "Dan admin user",
         },
         {
           sacco_id: SACCO_ID,
