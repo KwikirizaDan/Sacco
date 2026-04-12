@@ -11,8 +11,6 @@ import {
 } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 
-// ─── Enums ────────────────────────────────────────────────────────────────────
-
 export const memberStatusEnum = pgEnum("member_status", [
   "active",
   "suspended",
@@ -79,8 +77,11 @@ export const interestTypeEnum = pgEnum("interest_type", [
   "monthly",
   "annual",
 ])
-
-// ─── Saccos ───────────────────────────────────────────────────────────────────
+export const userRoleEnum = pgEnum("user_role", [
+  "admin",
+  "cashier",
+  "field_agent",
+])
 
 export const saccos = pgTable("saccos", {
   id: uuid("id")
@@ -89,17 +90,40 @@ export const saccos = pgTable("saccos", {
   name: text("name").notNull(),
   code: text("code").unique(),
   logo_url: text("logo_url"),
-  primary_color: text("primary_color").default("#16a34a"),
+  primary_color: text("primary_color").default("#f97316"),
   contact_email: text("contact_email"),
   contact_phone: text("contact_phone"),
   address: text("address"),
+  website: text("website"),
+  registration_number: text("registration_number"),
   settings: text("settings").default("{}"),
   is_active: boolean("is_active").default(true),
+  onboarding_completed: boolean("onboarding_completed").default(false),
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),
 })
 
-// ─── Members ──────────────────────────────────────────────────────────────────
+export const saccoUsers = pgTable("sacco_users", {
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  sacco_id: uuid("sacco_id")
+    .references(() => saccos.id)
+    .notNull(),
+  full_name: text("full_name").notNull(),
+  email: text("email").notNull().unique(),
+  phone: text("phone"),
+  password_hash: text("password_hash").notNull(),
+  role: userRoleEnum("role").notNull().default("field_agent"),
+  avatar_url: text("avatar_url"),
+  is_active: boolean("is_active").default(true),
+  must_change_password: boolean("must_change_password").default(false),
+  last_login_at: timestamp("last_login_at"),
+  notes: text("notes"),
+  created_by: uuid("created_by"),
+  created_at: timestamp("created_at").defaultNow(),
+  updated_at: timestamp("updated_at").defaultNow(),
+})
 
 export const members = pgTable("members", {
   id: uuid("id")
@@ -124,8 +148,6 @@ export const members = pgTable("members", {
   updated_at: timestamp("updated_at").defaultNow(),
 })
 
-// ─── Loan Categories ──────────────────────────────────────────────────────────
-
 export const loanCategories = pgTable("loan_categories", {
   id: uuid("id")
     .primaryKey()
@@ -144,9 +166,6 @@ export const loanCategories = pgTable("loan_categories", {
   created_at: timestamp("created_at").defaultNow(),
 })
 
-// ─── Interest Rates Table (NEW) ───────────────────────────────────────────────
-// This table defines interest rates based on loan amount ranges
-
 export const interestRates = pgTable("interest_rates", {
   id: uuid("id")
     .primaryKey()
@@ -154,16 +173,14 @@ export const interestRates = pgTable("interest_rates", {
   sacco_id: uuid("sacco_id")
     .references(() => saccos.id)
     .notNull(),
-  min_amount: integer("min_amount").notNull(), // Minimum loan amount in cents
-  max_amount: integer("max_amount").notNull(), // Maximum loan amount in cents
-  rate: numeric("rate").notNull(), // Interest rate percentage
-  rate_type: interestTypeEnum("rate_type").default("monthly"), // daily, monthly, annual
+  min_amount: integer("min_amount").notNull(),
+  max_amount: integer("max_amount").notNull(),
+  rate: numeric("rate").notNull(),
+  rate_type: interestTypeEnum("rate_type").default("monthly"),
   is_active: boolean("is_active").default(true),
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),
 })
-
-// ─── Loans (UPDATED) ──────────────────────────────────────────────────────────
 
 export const loans = pgTable("loans", {
   id: uuid("id")
@@ -176,18 +193,18 @@ export const loans = pgTable("loans", {
     .references(() => members.id)
     .notNull(),
   category_id: uuid("category_id").references(() => loanCategories.id),
-  interest_rate_id: uuid("interest_rate_id").references(() => interestRates.id), // Reference to applied interest rate
+  interest_rate_id: uuid("interest_rate_id").references(() => interestRates.id),
   loan_ref: text("loan_ref").unique().notNull(),
-  amount: integer("amount").notNull(), // Principal amount in cents
-  expected_received: integer("expected_received").notNull(), // Total expected to receive including interest
-  balance: integer("balance").notNull(), // Remaining balance
-  interest_rate: numeric("interest_rate").notNull(), // Stored interest rate value from interest_rates
-  interest_type: interestTypeEnum("interest_type").default("monthly"), // Type of interest calculation
-  duration_months: integer("duration_months").default(12), // Loan duration in months
+  amount: integer("amount").notNull(),
+  expected_received: integer("expected_received").notNull(),
+  balance: integer("balance").notNull(),
+  interest_rate: numeric("interest_rate").notNull(),
+  interest_type: interestTypeEnum("interest_type").default("monthly"),
+  duration_months: integer("duration_months").default(12),
   status: loanStatusEnum("status").notNull().default("pending"),
-  late_penalty_fee: integer("late_penalty_fee").default(0), // Penalty fee for late payments in cents
-  daily_payment: integer("daily_payment").default(0), // Daily expected payment in cents
-  monthly_payment: integer("monthly_payment").default(0), // Monthly expected payment in cents
+  late_penalty_fee: integer("late_penalty_fee").default(0),
+  daily_payment: integer("daily_payment").default(0),
+  monthly_payment: integer("monthly_payment").default(0),
   due_date: date("due_date"),
   disbursed_at: timestamp("disbursed_at"),
   settled_at: timestamp("settled_at"),
@@ -196,8 +213,6 @@ export const loans = pgTable("loans", {
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),
 })
-
-// ─── Loan Extensions ──────────────────────────────────────────────────────────
 
 export const loanExtensions = pgTable("loan_extensions", {
   id: uuid("id")
@@ -212,26 +227,6 @@ export const loanExtensions = pgTable("loan_extensions", {
   created_at: timestamp("created_at").defaultNow(),
 })
 
-// ─── Loan Top Ups ─────────────────────────────────────────────────────────────
-
-export const loanTopUps = pgTable("loan_top_ups", {
-  id: uuid("id")
-    .primaryKey()
-    .default(sql`gen_random_uuid()`),
-  loan_id: uuid("loan_id")
-    .references(() => loans.id)
-    .notNull(),
-  amount: integer("amount").notNull(), // Top up amount in cents
-  reason: text("reason"),
-  payment_method: paymentMethodEnum("payment_method").default("cash"),
-  payment_reference: text("payment_reference"), // Reference for payment
-  notes: text("notes"),
-  processed_by: uuid("processed_by").references(() => members.id), // Admin who processed the top up
-  created_at: timestamp("created_at").defaultNow(),
-})
-
-// ─── Loan Guarantors ──────────────────────────────────────────────────────────
-
 export const loanGuarantors = pgTable("loan_guarantors", {
   id: uuid("id")
     .primaryKey()
@@ -245,7 +240,20 @@ export const loanGuarantors = pgTable("loan_guarantors", {
   created_at: timestamp("created_at").defaultNow(),
 })
 
-// ─── Savings Categories ───────────────────────────────────────────────────────
+export const loanTopUps = pgTable("loan_top_ups", {
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  loan_id: uuid("loan_id")
+    .references(() => loans.id)
+    .notNull(),
+  amount: integer("amount").notNull(),
+  reason: text("reason"),
+  payment_method: paymentMethodEnum("payment_method").default("cash"),
+  notes: text("notes"),
+  processed_by: uuid("processed_by"),
+  created_at: timestamp("created_at").defaultNow(),
+})
 
 export const savingsCategories = pgTable("savings_categories", {
   id: uuid("id")
@@ -261,8 +269,6 @@ export const savingsCategories = pgTable("savings_categories", {
   is_active: boolean("is_active").default(true),
   created_at: timestamp("created_at").defaultNow(),
 })
-
-// ─── Savings Accounts ─────────────────────────────────────────────────────────
 
 export const savingsAccounts = pgTable("savings_accounts", {
   id: uuid("id")
@@ -285,8 +291,6 @@ export const savingsAccounts = pgTable("savings_accounts", {
   updated_at: timestamp("updated_at").defaultNow(),
 })
 
-// ─── Transactions ─────────────────────────────────────────────────────────────
-
 export const transactions = pgTable("transactions", {
   id: uuid("id")
     .primaryKey()
@@ -306,8 +310,6 @@ export const transactions = pgTable("transactions", {
   created_at: timestamp("created_at").defaultNow(),
 })
 
-// ─── Fine Categories ──────────────────────────────────────────────────────────
-
 export const fineCategories = pgTable("fine_categories", {
   id: uuid("id")
     .primaryKey()
@@ -320,8 +322,6 @@ export const fineCategories = pgTable("fine_categories", {
   created_at: timestamp("created_at").defaultNow(),
 })
 
-// ─── Fines ────────────────────────────────────────────────────────────────────
-
 export const fines = pgTable("fines", {
   id: uuid("id")
     .primaryKey()
@@ -333,24 +333,22 @@ export const fines = pgTable("fines", {
     .references(() => members.id)
     .notNull(),
   category_id: uuid("category_id").references(() => fineCategories.id),
-  fine_ref: text("fine_ref").unique(), // Unique fine reference number
+  fine_ref: text("fine_ref").unique(),
   amount: integer("amount").notNull(),
   reason: text("reason"),
-  description: text("description"), // Detailed description of the fine
+  description: text("description"),
   status: fineStatusEnum("status").notNull().default("pending"),
-  priority: text("priority").default("normal"), // low, normal, high
+  priority: text("priority").default("normal"),
   due_date: date("due_date"),
   paid_at: timestamp("paid_at"),
   payment_method: paymentMethodEnum("payment_method"),
   payment_reference: text("payment_reference"),
-  waived_by: uuid("waived_by"), // User/admin who waived the fine
+  waived_by: uuid("waived_by"),
   waiver_reason: text("waiver_reason"),
   notes: text("notes"),
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),
 })
-
-// ─── Documents ────────────────────────────────────────────────────────────────
 
 export const documents = pgTable("documents", {
   id: uuid("id")
@@ -369,8 +367,6 @@ export const documents = pgTable("documents", {
   created_at: timestamp("created_at").defaultNow(),
 })
 
-// ─── Notifications ────────────────────────────────────────────────────────────
-
 export const notifications = pgTable("notifications", {
   id: uuid("id")
     .primaryKey()
@@ -383,13 +379,13 @@ export const notifications = pgTable("notifications", {
   body: text("body").notNull(),
   type: notificationTypeEnum("type").default("sms"),
   status: notificationStatusEnum("status").default("pending"),
-  priority: text("priority").default("normal"), // low, normal, high, urgent
-  channel: text("channel").default("sms"), // sms, email, push, in_app
+  priority: text("priority").default("normal"),
+  channel: text("channel").default("sms"),
   recipient_phone: text("recipient_phone"),
   recipient_email: text("recipient_email"),
-  reference_type: text("reference_type"), // loan, fine, complaint, meeting, etc.
+  reference_type: text("reference_type"),
   reference_id: text("reference_id"),
-  metadata: text("metadata").default("{}"), // JSON string for additional data
+  metadata: text("metadata").default("{}"),
   retry_count: integer("retry_count").default(0),
   max_retries: integer("max_retries").default(3),
   error_message: text("error_message"),
@@ -401,8 +397,6 @@ export const notifications = pgTable("notifications", {
   updated_at: timestamp("updated_at").defaultNow(),
 })
 
-// ─── Complaints ───────────────────────────────────────────────────────────────
-
 export const complaints = pgTable("complaints", {
   id: uuid("id")
     .primaryKey()
@@ -411,24 +405,22 @@ export const complaints = pgTable("complaints", {
     .references(() => saccos.id)
     .notNull(),
   member_id: uuid("member_id").references(() => members.id),
-  complaint_ref: text("complaint_ref").unique(), // Unique complaint reference number
+  complaint_ref: text("complaint_ref").unique(),
   subject: text("subject").notNull(),
   body: text("body").notNull(),
-  category: text("category").default("general"), // general, loan, savings, service, technical, other
-  priority: text("priority").default("normal"), // low, normal, high, urgent
+  category: text("category").default("general"),
+  priority: text("priority").default("normal"),
   status: complaintStatusEnum("status").default("open"),
-  assigned_to: uuid("assigned_to"), // User/admin assigned to handle
+  assigned_to: uuid("assigned_to"),
   resolution_notes: text("resolution_notes"),
   resolved_at: timestamp("resolved_at"),
-  resolved_by: uuid("resolved_by"), // User/admin who resolved
-  satisfaction_rating: integer("satisfaction_rating"), // 1-5 rating after resolution
-  feedback: text("feedback"), // Member feedback after resolution
+  resolved_by: uuid("resolved_by"),
+  satisfaction_rating: integer("satisfaction_rating"),
+  feedback: text("feedback"),
   notes: text("notes"),
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),
 })
-
-// ─── Audit Logs ───────────────────────────────────────────────────────────────
 
 export const auditLogs = pgTable("audit_logs", {
   id: uuid("id")
@@ -437,22 +429,26 @@ export const auditLogs = pgTable("audit_logs", {
   sacco_id: uuid("sacco_id")
     .references(() => saccos.id)
     .notNull(),
-  actor: text("actor").notNull(),
+  actor_id: uuid("actor_id"),
+  actor_name: text("actor_name"),
+  actor_role: text("actor_role"),
   action: text("action").notNull(),
   entity: text("entity").notNull(),
   entity_id: uuid("entity_id"),
   diff: text("diff"),
+  ip_address: text("ip_address"),
   created_at: timestamp("created_at").defaultNow(),
 })
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 export type Sacco = typeof saccos.$inferSelect
+export type SaccoUser = typeof saccoUsers.$inferSelect
 export type Member = typeof members.$inferSelect
 export type Loan = typeof loans.$inferSelect
 export type LoanCategory = typeof loanCategories.$inferSelect
 export type InterestRate = typeof interestRates.$inferSelect
 export type LoanExtension = typeof loanExtensions.$inferSelect
+export type LoanGuarantor = typeof loanGuarantors.$inferInsert
+export type LoanTopUp = typeof loanTopUps.$inferSelect
 export type SavingsAccount = typeof savingsAccounts.$inferSelect
 export type SavingsCategory = typeof savingsCategories.$inferSelect
 export type Transaction = typeof transactions.$inferSelect

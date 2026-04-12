@@ -5,7 +5,11 @@ import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { useDropzone } from "react-dropzone"
 import { toast } from "sonner"
-import { editMemberAction, deleteMemberAction, MemberFormState } from "../../actions"
+import {
+  editMemberAction,
+  deleteMemberAction,
+  MemberFormState,
+} from "../../actions"
 import { Member } from "@/db/schema"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -45,16 +49,16 @@ function SectionHeader({
   description?: string
 }) {
   return (
-    <div className="flex items-start gap-4 mb-6">
-      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground text-xs font-semibold flex items-center justify-center tracking-wide mt-0.5">
+    <div className="mb-6 flex items-start gap-4">
+      <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold tracking-wide text-primary-foreground">
         {step}
       </div>
       <div>
-        <h3 className="text-sm font-semibold text-foreground uppercase tracking-widest">
+        <h3 className="text-sm font-semibold tracking-widest text-foreground uppercase">
           {title}
         </h3>
         {description && (
-          <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
+          <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
         )}
       </div>
     </div>
@@ -63,7 +67,7 @@ function SectionHeader({
 
 function FieldGroup({ children }: { children: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
+    <div className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
       {children}
     </div>
   )
@@ -88,15 +92,15 @@ function Field({
     <div className={`flex flex-col gap-1.5 ${span ? "sm:col-span-2" : ""}`}>
       <label
         htmlFor={id}
-        className="text-xs font-medium text-muted-foreground uppercase tracking-widest"
+        className="text-xs font-medium tracking-widest text-muted-foreground uppercase"
       >
         {label}
-        {required && <span className="text-destructive ml-1">*</span>}
+        {required && <span className="ml-1 text-destructive">*</span>}
       </label>
       {children}
       {error && (
-        <p className="text-xs text-destructive flex items-center gap-1 mt-0.5">
-          <span className="inline-block w-1 h-1 rounded-full bg-destructive" />
+        <p className="mt-0.5 flex items-center gap-1 text-xs text-destructive">
+          <span className="inline-block h-1 w-1 rounded-full bg-destructive" />
           {error}
         </p>
       )}
@@ -114,7 +118,10 @@ export function EditMemberForm({ member }: EditMemberFormProps) {
   const [deleting, setDeleting] = useState(false)
 
   const boundAction = editMemberAction.bind(null, member.id)
-  const [state, formAction, isPending] = useActionState(boundAction, initialState)
+  const [state, formAction, isPending] = useActionState(
+    boundAction,
+    initialState
+  )
 
   useEffect(() => {
     if (state.success) {
@@ -153,11 +160,11 @@ export function EditMemberForm({ member }: EditMemberFormProps) {
   const fieldError = (field: string) => state.fieldErrors?.[field]?.[0]
 
   return (
-    <form action={formAction} className="max-w-2xl mx-auto">
+    <form action={formAction} className="mx-auto max-w-2xl">
       <input type="hidden" name="photo_url" value={photoUrl} />
 
       {/* ── Section 1: Photo ── */}
-      <div className="bg-card border border-border rounded-2xl p-6 mb-4 shadow-sm">
+      <div className="mb-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
         <SectionHeader
           step={1}
           title="Profile Photo"
@@ -166,7 +173,7 @@ export function EditMemberForm({ member }: EditMemberFormProps) {
 
         <div className="flex items-center gap-6">
           <div className="relative flex-shrink-0">
-            <div className="h-24 w-24 rounded-2xl border-2 border-border overflow-hidden bg-muted flex items-center justify-center shadow-inner">
+            <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-2xl border-2 border-border bg-muted shadow-inner">
               {photoPreview ? (
                 <Image
                   src={photoPreview}
@@ -179,7 +186,7 @@ export function EditMemberForm({ member }: EditMemberFormProps) {
               )}
             </div>
             {photoPreview && (
-              <div className="absolute -bottom-1.5 -right-1.5 bg-primary rounded-full p-1 shadow">
+              <div className="absolute -right-1.5 -bottom-1.5 rounded-full bg-primary p-1 shadow">
                 <Camera className="h-3 w-3 text-primary-foreground" />
               </div>
             )}
@@ -187,27 +194,30 @@ export function EditMemberForm({ member }: EditMemberFormProps) {
 
           <div
             {...getRootProps()}
-            className={`flex-1 border-2 border-dashed rounded-xl px-5 py-4 cursor-pointer transition-all
-              ${
-                isDragActive
-                  ? "border-ring bg-accent"
-                  : "border-border hover:border-ring/50 hover:bg-accent/50"
-              }`}
+            className={`flex-1 cursor-pointer rounded-xl border-2 border-dashed px-5 py-4 transition-all ${
+              isDragActive
+                ? "border-ring bg-accent"
+                : "border-border hover:border-ring/50 hover:bg-accent/50"
+            }`}
           >
             <input {...getInputProps()} />
             <div className="flex flex-col items-center gap-1.5 text-center">
               <Upload className="h-5 w-5 text-muted-foreground" />
               <p className="text-sm font-medium text-foreground">
-                {isDragActive ? "Drop your photo here" : "Click or drag to change photo"}
+                {isDragActive
+                  ? "Drop your photo here"
+                  : "Click or drag to change photo"}
               </p>
-              <p className="text-xs text-muted-foreground">PNG, JPG or WEBP • Max 5MB</p>
+              <p className="text-xs text-muted-foreground">
+                PNG, JPG or WEBP • Max 5MB
+              </p>
             </div>
           </div>
         </div>
       </div>
 
       {/* ── Section 2: Personal Info ── */}
-      <div className="bg-card border border-border rounded-2xl p-6 mb-4 shadow-sm">
+      <div className="mb-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
         <SectionHeader
           step={2}
           title="Personal Information"
@@ -215,7 +225,13 @@ export function EditMemberForm({ member }: EditMemberFormProps) {
         />
 
         <FieldGroup>
-          <Field id="full_name" label="Full Name" required error={fieldError("full_name")} span>
+          <Field
+            id="full_name"
+            label="Full Name"
+            required
+            error={fieldError("full_name")}
+            span
+          >
             <Input
               id="full_name"
               name="full_name"
@@ -225,7 +241,12 @@ export function EditMemberForm({ member }: EditMemberFormProps) {
             />
           </Field>
 
-          <Field id="phone" label="Phone Number" required error={fieldError("phone")}>
+          <Field
+            id="phone"
+            label="Phone Number"
+            required
+            error={fieldError("phone")}
+          >
             <Input
               id="phone"
               name="phone"
@@ -246,7 +267,12 @@ export function EditMemberForm({ member }: EditMemberFormProps) {
             />
           </Field>
 
-          <Field id="national_id" label="National ID" required error={fieldError("national_id")}>
+          <Field
+            id="national_id"
+            label="National ID"
+            required
+            error={fieldError("national_id")}
+          >
             <Input
               id="national_id"
               name="national_id"
@@ -278,25 +304,25 @@ export function EditMemberForm({ member }: EditMemberFormProps) {
 
           <Field id="status" label="Membership Status" span>
             <Select name="status" defaultValue={member.status}>
-              <SelectTrigger className={`${inputClass} w-full flex`}>
+              <SelectTrigger className={`${inputClass} flex w-full`}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="active">
                   <span className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
+                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-green-500" />
                     Active
                   </span>
                 </SelectItem>
                 <SelectItem value="suspended">
                   <span className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 inline-block" />
+                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-yellow-400" />
                     Suspended
                   </span>
                 </SelectItem>
                 <SelectItem value="exited">
                   <span className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground inline-block" />
+                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-muted-foreground" />
                     Exited
                   </span>
                 </SelectItem>
@@ -307,7 +333,7 @@ export function EditMemberForm({ member }: EditMemberFormProps) {
       </div>
 
       {/* ── Section 3: Next of Kin ── */}
-      <div className="bg-card border border-border rounded-2xl p-6 mb-6 shadow-sm">
+      <div className="mb-6 rounded-2xl border border-border bg-card p-6 shadow-sm">
         <SectionHeader
           step={3}
           title="Next of Kin"
@@ -340,27 +366,25 @@ export function EditMemberForm({ member }: EditMemberFormProps) {
       <div className="flex items-center justify-between pt-2 pb-8">
         {/* Delete with confirmation */}
         <AlertDialog>
-          <AlertDialogTrigger>
-            <button
-              type="button"
-              disabled={deleting}
-              className="flex items-center gap-2 text-sm text-destructive hover:text-destructive/80 transition-colors disabled:opacity-50"
-            >
-              {deleting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Trash2 className="h-4 w-4" />
-              )}
-              Delete Member
-            </button>
+          <AlertDialogTrigger
+            type="button"
+            disabled={deleting}
+            className="flex items-center gap-2 text-sm text-destructive transition-colors hover:text-destructive/80 disabled:opacity-50"
+          >
+            {deleting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Trash2 className="h-4 w-4" />
+            )}
+            Delete Member
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Delete {member.full_name}?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently delete this member and all their associated
-                data including loans, savings, fines, and transactions. This
-                action cannot be undone.
+                This will permanently delete this member and all their
+                associated data including loans, savings, fines, and
+                transactions. This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -379,7 +403,7 @@ export function EditMemberForm({ member }: EditMemberFormProps) {
           <button
             type="button"
             onClick={() => router.back()}
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
             Cancel
@@ -388,11 +412,11 @@ export function EditMemberForm({ member }: EditMemberFormProps) {
           <Button
             type="submit"
             disabled={isPending}
-            className="h-10 px-6 rounded-xl text-sm font-medium tracking-wide transition-all shadow-sm"
+            className="h-10 rounded-xl px-6 text-sm font-medium tracking-wide shadow-sm transition-all"
           >
             {isPending ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Saving…
               </>
             ) : (

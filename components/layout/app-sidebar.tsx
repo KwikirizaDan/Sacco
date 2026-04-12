@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import {
   LayoutDashboard,
   Users,
@@ -13,7 +13,9 @@ import {
   FileText,
   Bell,
   MessageSquare,
-  HelpCircle,
+  UserCog,
+  LogOut,
+  ChevronUp,
 } from "lucide-react"
 import {
   Sidebar,
@@ -27,8 +29,20 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { UserButton } from "@clerk/nextjs"
-import { cn } from "@/lib/utils"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+
+interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
+  user: { fullName: string; email: string; role: string }
+}
+
+type NavItem = { title: string; href: string; icon: React.ElementType }
 
 const navGroups = [
   {
@@ -39,7 +53,7 @@ const navGroups = [
     label: "People",
     items: [
       { title: "Members", href: "/members", icon: Users },
-      { title: "Complaints", href: "/complaints", icon: MessageSquare },
+      { title: "Users", href: "/dashboard/users", icon: UserCog },
     ],
   },
   {
@@ -51,41 +65,127 @@ const navGroups = [
     ],
   },
   {
-    label: "Administration",
+    label: "Operations",
     items: [
-      { title: "Reports", href: "/reports", icon: FileText },
+      {
+        title: "Complaints",
+        href: "/complaints",
+        icon: MessageSquare,
+      },
       { title: "Documents", href: "/documents", icon: FileText },
       { title: "Notifications", href: "/notifications", icon: Bell },
-      { title: "Support", href: "/support", icon: HelpCircle },
     ],
   },
   {
-    label: "Config",
+    label: "Reports",
+    items: [{ title: "Reports", href: "/reports", icon: FileText }],
+  },
+  {
+    label: "Settings",
     items: [{ title: "Settings", href: "/settings", icon: Settings }],
   },
 ]
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+// Which nav items each role can see
+const ROLE_NAV: Record<string, string[]> = {
+  admin: [
+    "Dashboard",
+    "Members",
+    "Loans",
+    "Savings",
+    "Fines",
+    "Complaints",
+    "Documents",
+    "Notifications",
+    "Reports",
+    "Users",
+    "Settings",
+  ],
+  cashier: [
+    "Dashboard",
+    "Members",
+    "Loans",
+    "Savings",
+    "Fines",
+    "Complaints",
+    "Documents",
+    "Notifications",
+    "Users",
+  ],
+  field_agent: [
+    "Dashboard",
+    "Members",
+    "Loans",
+    "Savings",
+    "Fines",
+    "Complaints",
+  ],
+}
+
+const ROLE_LABELS: Record<string, string> = {
+  admin: "Administrator",
+  cashier: "Cashier",
+  field_agent: "Field Agent",
+}
+
+const ROLE_BADGE: Record<string, string> = {
+  admin:
+    "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
+  cashier: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+  field_agent:
+    "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+}
+
+export function AppSidebar({ user, ...props }: AppSidebarProps) {
   const pathname = usePathname()
+  const router = useRouter()
+
+  const allowed = ROLE_NAV[user.role] ?? ROLE_NAV.field_agent
+  const filteredGroups = navGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => allowed.includes(item.title)),
+    }))
+    .filter((group) => group.items.length > 0)
+  const initials = user.fullName
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase()
+
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" })
+    router.push("/auth/login")
+    router.refresh()
+  }
 
   return (
     <Sidebar collapsible="icon" {...props}>
+      {/* Logo */}
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" tooltip="SACCO Manager">
               <Link
                 href="/dashboard"
-                prefetch={true}
                 className="flex w-full items-center gap-2"
               >
-                <img
-                  src="/sacco_logo_dark.svg"
-                  alt="SACCO Logo"
-                  className="size-8 shrink-0"
-                />
-                <div className="flex flex-col gap-0.5 leading-none">
-                  <span className="font-semibold">SACCO</span>
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    className="h-4 w-4"
+                  >
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                    <polyline points="9 22 9 12 15 12 15 22" />
+                  </svg>
+                </div>
+                <div className="flex flex-col gap-0 leading-none">
+                  <span className="text-sm font-semibold">SACCO</span>
                   <span className="text-xs text-muted-foreground">
                     Management
                   </span>
@@ -96,8 +196,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
 
-      <SidebarContent className="overflow-y-auto">
-        {navGroups.map((group) => (
+      {/* Nav items */}
+      <SidebarContent>
+        {filteredGroups.map((group) => (
           <SidebarGroup key={group.label}>
             <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
             <SidebarMenu>
@@ -109,10 +210,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     <SidebarMenuButton isActive={isActive} tooltip={item.title}>
                       <Link
                         href={item.href}
-                        prefetch={true}
-                        className={cn("flex w-full items-center gap-2")}
+                        className="flex w-full items-center gap-2"
                       >
-                        <item.icon className="shrink-0" />
+                        <item.icon className="h-4 w-4 shrink-0" />
                         <span>{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
@@ -124,13 +224,58 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         ))}
       </SidebarContent>
 
+      {/* User footer with logout */}
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" tooltip="Account">
-              <UserButton />
-              <span className="text-sm font-medium">Account</span>
-            </SidebarMenuButton>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton
+                  size="lg"
+                  tooltip="Account"
+                  className="cursor-pointer"
+                >
+                  <Avatar className="h-8 w-8 rounded-lg">
+                    <AvatarFallback className="rounded-lg bg-primary/10 text-sm font-semibold text-primary">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-semibold">
+                      {user.fullName}
+                    </span>
+                    <span className="truncate text-xs text-muted-foreground">
+                      {ROLE_LABELS[user.role] ?? user.role}
+                    </span>
+                  </div>
+                  <ChevronUp className="ml-auto h-4 w-4" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side="top" className="w-56" align="end">
+                <div className="px-3 py-2">
+                  <p className="text-xs font-medium">{user.fullName}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {user.email}
+                  </p>
+                  <span
+                    className={[
+                      "mt-1.5 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                      ROLE_BADGE[user.role] ?? "",
+                    ].join(" ")}
+                  >
+                    {ROLE_LABELS[user.role] ?? user.role}
+                  </span>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="cursor-pointer text-destructive focus:text-destructive"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

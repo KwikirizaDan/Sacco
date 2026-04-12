@@ -1,12 +1,10 @@
 import { redirect } from "next/navigation"
-import { auth } from "@clerk/nextjs/server"
+import { getCurrentUser, checkOnboarding } from "@/lib/auth"
 
 export default async function Home() {
-  const { userId } = await auth()
-
-  if (userId) {
-    redirect("/dashboard")
-  } else {
-    redirect("/sign-in")
-  }
+  const user = await getCurrentUser()
+  if (!user) redirect("/auth/login")
+  const { needsOnboarding } = await checkOnboarding()
+  if (needsOnboarding) redirect("/auth/onboarding")
+  redirect("/dashboard")
 }
