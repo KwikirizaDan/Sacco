@@ -107,9 +107,7 @@ export const saccoUsers = pgTable("sacco_users", {
   id: uuid("id")
     .primaryKey()
     .default(sql`gen_random_uuid()`),
-  sacco_id: uuid("sacco_id")
-    .references(() => saccos.id)
-    .notNull(),
+  sacco_id: uuid("sacco_id").references(() => saccos.id),
   full_name: text("full_name").notNull(),
   email: text("email").notNull().unique(),
   phone: text("phone"),
