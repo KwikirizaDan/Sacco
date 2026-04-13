@@ -39,8 +39,7 @@ export function LoginForm({
           setError(data.error ?? "Invalid email or password.")
           return
         }
-        router.push(redirect)
-        router.refresh()
+        window.location.href = redirect
       } catch {
         setError("Something went wrong. Please try again.")
       }
