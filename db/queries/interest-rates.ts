@@ -35,12 +35,12 @@ export interface UpdateInterestRateInput {
 /**
  * Get all active interest rates for the current SACCO
  */
-export async function getActiveInterestRates() {
+export async function getActiveInterestRates(saccoId: string) {
   try {
     const rates = await db
       .select()
       .from(interestRates)
-      .where(eq(interestRates.sacco_id, SACCO_ID))
+      .where(eq(interestRates.sacco_id, saccoId))
       .orderBy(interestRates.min_amount)
 
     return rates
@@ -53,12 +53,12 @@ export async function getActiveInterestRates() {
 /**
  * Get all interest rates (including inactive) for the current SACCO
  */
-export async function getAllInterestRates() {
+export async function getAllInterestRates(saccoId: string) {
   try {
     const rates = await db
       .select()
       .from(interestRates)
-      .where(eq(interestRates.sacco_id, SACCO_ID))
+      .where(eq(interestRates.sacco_id, saccoId))
       .orderBy(interestRates.min_amount)
 
     return rates
@@ -71,14 +71,12 @@ export async function getAllInterestRates() {
 /**
  * Get interest rate by ID
  */
-export async function getInterestRateById(id: string) {
+export async function getInterestRateById(id: string, saccoId: string) {
   try {
     const [rate] = await db
       .select()
       .from(interestRates)
-      .where(
-        and(eq(interestRates.id, id), eq(interestRates.sacco_id, SACCO_ID))
-      )
+      .where(and(eq(interestRates.id, id), eq(interestRates.sacco_id, saccoId)))
 
     return rate || null
   } catch (error) {
@@ -90,14 +88,17 @@ export async function getInterestRateById(id: string) {
 /**
  * Get interest rate for a specific amount
  */
-export async function getInterestRateForAmount(amount: number) {
+export async function getInterestRateForAmount(
+  amount: number,
+  saccoId: string
+) {
   try {
     const [rate] = await db
       .select()
       .from(interestRates)
       .where(
         and(
-          eq(interestRates.sacco_id, SACCO_ID),
+          eq(interestRates.sacco_id, saccoId),
           eq(interestRates.is_active, true),
           sql`${amount} BETWEEN ${interestRates.min_amount} AND ${interestRates.max_amount}`
         )
@@ -117,11 +118,12 @@ export async function getInterestRateForAmount(amount: number) {
 export async function checkOverlappingRanges(
   minAmount: number,
   maxAmount: number,
+  saccoId: string,
   excludeId?: string
 ) {
   try {
     const baseCondition = and(
-      eq(interestRates.sacco_id, SACCO_ID),
+      eq(interestRates.sacco_id, saccoId),
       sql`(
         (${minAmount} BETWEEN ${interestRates.min_amount} AND ${interestRates.max_amount}) OR
         (${maxAmount} BETWEEN ${interestRates.min_amount} AND ${interestRates.max_amount}) OR
@@ -148,7 +150,10 @@ export async function checkOverlappingRanges(
 /**
  * Add a new interest rate
  */
-export async function addInterestRate(data: CreateInterestRateInput) {
+export async function addInterestRate(
+  data: CreateInterestRateInput,
+  saccoId: string
+) {
   try {
     // Convert amount from UGX to cents
     const minAmountInCents = Math.floor(data.min_amount * 100)
@@ -166,7 +171,8 @@ export async function addInterestRate(data: CreateInterestRateInput) {
     // Check for overlapping ranges
     const hasOverlap = await checkOverlappingRanges(
       minAmountInCents,
-      maxAmountInCents
+      maxAmountInCents,
+      saccoId
     )
     if (hasOverlap) {
       throw new Error("This amount range overlaps with an existing range")
@@ -198,11 +204,12 @@ export async function addInterestRate(data: CreateInterestRateInput) {
  */
 export async function updateInterestRate(
   id: string,
-  data: UpdateInterestRateInput
+  data: UpdateInterestRateInput,
+  saccoId: string
 ) {
   try {
     // Get existing rate
-    const existingRate = await getInterestRateById(id)
+    const existingRate = await getInterestRateById(id, saccoId)
     if (!existingRate) {
       throw new Error("Interest rate not found")
     }
@@ -251,7 +258,12 @@ export async function updateInterestRate(
       throw new Error("Minimum amount must be less than maximum amount")
     }
 
-    const hasOverlap = await checkOverlappingRanges(minAmount, maxAmount, id)
+    const hasOverlap = await checkOverlappingRanges(
+      minAmount,
+      maxAmount,
+      saccoId,
+      id
+    )
     if (hasOverlap) {
       throw new Error("This amount range overlaps with an existing range")
     }
@@ -259,9 +271,7 @@ export async function updateInterestRate(
     const [updatedRate] = await db
       .update(interestRates)
       .set(updateData)
-      .where(
-        and(eq(interestRates.id, id), eq(interestRates.sacco_id, SACCO_ID))
-      )
+      .where(and(eq(interestRates.id, id), eq(interestRates.sacco_id, saccoId)))
       .returning()
 
     return updatedRate
@@ -274,7 +284,7 @@ export async function updateInterestRate(
 /**
  * Deactivate an interest rate (soft delete)
  */
-export async function deactivateInterestRate(id: string) {
+export async function deactivateInterestRate(id: string, saccoId: string) {
   try {
     const [deactivatedRate] = await db
       .update(interestRates)
@@ -282,9 +292,7 @@ export async function deactivateInterestRate(id: string) {
         is_active: false,
         updated_at: new Date(),
       })
-      .where(
-        and(eq(interestRates.id, id), eq(interestRates.sacco_id, SACCO_ID))
-      )
+      .where(and(eq(interestRates.id, id), eq(interestRates.sacco_id, saccoId)))
       .returning()
 
     if (!deactivatedRate) {
@@ -301,7 +309,7 @@ export async function deactivateInterestRate(id: string) {
 /**
  * Activate an interest rate
  */
-export async function activateInterestRate(id: string) {
+export async function activateInterestRate(id: string, saccoId: string) {
   try {
     const [activatedRate] = await db
       .update(interestRates)
@@ -309,9 +317,7 @@ export async function activateInterestRate(id: string) {
         is_active: true,
         updated_at: new Date(),
       })
-      .where(
-        and(eq(interestRates.id, id), eq(interestRates.sacco_id, SACCO_ID))
-      )
+      .where(and(eq(interestRates.id, id), eq(interestRates.sacco_id, saccoId)))
       .returning()
 
     if (!activatedRate) {
@@ -328,7 +334,7 @@ export async function activateInterestRate(id: string) {
 /**
  * Delete an interest rate (hard delete - use with caution)
  */
-export async function deleteInterestRate(id: string) {
+export async function deleteInterestRate(id: string, saccoId: string) {
   try {
     // Check if any loans are using this interest rate
     const { loans } = await import("@/db/schema")
@@ -346,9 +352,7 @@ export async function deleteInterestRate(id: string) {
 
     const [deletedRate] = await db
       .delete(interestRates)
-      .where(
-        and(eq(interestRates.id, id), eq(interestRates.sacco_id, SACCO_ID))
-      )
+      .where(and(eq(interestRates.id, id), eq(interestRates.sacco_id, saccoId)))
       .returning()
 
     if (!deletedRate) {
@@ -365,7 +369,7 @@ export async function deleteInterestRate(id: string) {
 /**
  * Get interest rate statistics
  */
-export async function getInterestRateStats() {
+export async function getInterestRateStats(saccoId: string) {
   try {
     const [stats] = await db
       .select({
@@ -378,7 +382,7 @@ export async function getInterestRateStats() {
         maxAmount: sql<number>`MAX(${interestRates.max_amount})`,
       })
       .from(interestRates)
-      .where(eq(interestRates.sacco_id, SACCO_ID))
+      .where(eq(interestRates.sacco_id, saccoId))
 
     return {
       ...stats,
@@ -397,12 +401,15 @@ export async function getInterestRateStats() {
 /**
  * Bulk add multiple interest rates
  */
-export async function bulkAddInterestRates(rates: CreateInterestRateInput[]) {
+export async function bulkAddInterestRates(
+  rates: CreateInterestRateInput[],
+  saccoId: string
+) {
   try {
     const results = []
     for (const rate of rates) {
       try {
-        const newRate = await addInterestRate(rate)
+        const newRate = await addInterestRate(rate, saccoId)
         results.push({ success: true, data: newRate })
       } catch (error) {
         results.push({
@@ -461,10 +468,11 @@ export function validateInterestRateRange(
 export async function getRecommendedRate(
   amount: number,
   durationMonths: number,
+  saccoId: string,
   memberRiskScore?: number
 ) {
   try {
-    const baseRate = await getInterestRateForAmount(amount)
+    const baseRate = await getInterestRateForAmount(amount, saccoId)
     if (!baseRate) {
       throw new Error("No interest rate found for this amount")
     }

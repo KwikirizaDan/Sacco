@@ -1,9 +1,8 @@
 import { db } from "@/db"
 import { notifications, members } from "@/db/schema"
 import { eq, desc, count, isNull } from "drizzle-orm"
-import { SACCO_ID } from "@/lib/constants"
 
-export async function getAllNotifications() {
+export async function getAllNotifications(saccoId: string) {
   return await db
     .select({
       id: notifications.id,
@@ -28,20 +27,20 @@ export async function getAllNotifications() {
     })
     .from(notifications)
     .leftJoin(members, eq(notifications.member_id, members.id))
-    .where(eq(notifications.sacco_id, SACCO_ID))
+    .where(eq(notifications.sacco_id, saccoId))
     .orderBy(desc(notifications.created_at))
     .limit(100)
 }
 
-export async function getUnreadNotificationsCount() {
+export async function getUnreadNotificationsCount(saccoId: string) {
   const [result] = await db
     .select({ count: count() })
     .from(notifications)
-    .where(eq(notifications.sacco_id, SACCO_ID))
+    .where(eq(notifications.sacco_id, saccoId))
   return result?.count ?? 0
 }
 
-export async function getLatestNotifications(limit = 5) {
+export async function getLatestNotifications(saccoId: string, limit = 5) {
   return await db
     .select({
       id: notifications.id,
@@ -57,7 +56,7 @@ export async function getLatestNotifications(limit = 5) {
     })
     .from(notifications)
     .leftJoin(members, eq(notifications.member_id, members.id))
-    .where(eq(notifications.sacco_id, SACCO_ID))
+    .where(eq(notifications.sacco_id, saccoId))
     .orderBy(desc(notifications.created_at))
     .limit(limit)
 }

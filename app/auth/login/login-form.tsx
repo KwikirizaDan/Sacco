@@ -39,11 +39,7 @@ export function LoginForm({
           setError(data.error ?? "Invalid email or password.")
           return
         }
-        if (data.role === "admin" && data.needsOnboarding) {
-          router.push("/auth/onboarding")
-        } else {
-          router.push(redirect)
-        }
+        router.push(redirect)
         router.refresh()
       } catch {
         setError("Something went wrong. Please try again.")

@@ -125,7 +125,7 @@ async function seed() {
         contact_phone: "+256 700 000 000",
         address: "Kampala, Uganda",
         is_active: true,
-        onboarding_completed: false, // triggers onboarding after first login
+        onboarding_completed: true,
       })
       .onConflictDoNothing()
     console.log("✅ SACCO")

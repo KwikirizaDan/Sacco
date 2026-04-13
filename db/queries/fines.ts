@@ -1,9 +1,8 @@
 import { db } from "@/db"
 import { fines, fineCategories, members } from "@/db/schema"
-import { eq, desc, sum, count } from "drizzle-orm"
-import { SACCO_ID } from "@/lib/constants"
+import { eq, desc, sum, count, and } from "drizzle-orm"
 
-export async function getAllFines() {
+export async function getAllFines(saccoId: string) {
   return await db
     .select({
       id: fines.id,
@@ -31,30 +30,30 @@ export async function getAllFines() {
     .from(fines)
     .leftJoin(members, eq(fines.member_id, members.id))
     .leftJoin(fineCategories, eq(fines.category_id, fineCategories.id))
-    .where(eq(fines.sacco_id, SACCO_ID))
+    .where(eq(fines.sacco_id, saccoId))
     .orderBy(desc(fines.created_at))
 }
 
-export async function getFinesStats() {
+export async function getFinesStats(saccoId: string) {
   const [total] = await db
     .select({ total: sum(fines.amount), count: count() })
     .from(fines)
-    .where(eq(fines.sacco_id, SACCO_ID))
+    .where(eq(fines.sacco_id, saccoId))
 
   const [pending] = await db
     .select({ total: sum(fines.amount), count: count() })
     .from(fines)
-    .where(eq(fines.status, "pending"))
+    .where(and(eq(fines.sacco_id, saccoId), eq(fines.status, "pending")))
 
   const [paid] = await db
     .select({ total: sum(fines.amount), count: count() })
     .from(fines)
-    .where(eq(fines.status, "paid"))
+    .where(and(eq(fines.sacco_id, saccoId), eq(fines.status, "paid")))
 
   const [waived] = await db
     .select({ count: count() })
     .from(fines)
-    .where(eq(fines.status, "waived"))
+    .where(and(eq(fines.sacco_id, saccoId), eq(fines.status, "waived")))
 
   return {
     totalAmount: Number(total?.total ?? 0),

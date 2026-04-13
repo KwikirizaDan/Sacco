@@ -10,7 +10,6 @@ const SESSION_OPTIONS = {
 
 const PUBLIC_PATHS = [
   "/auth/login",
-  "/auth/onboarding",
   "/api/auth",
   "/api/auth/login",
   "/api/auth/logout",

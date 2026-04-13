@@ -1,4 +1,5 @@
 // app/(dashboard)/loans/page.tsx
+import { requireAuth } from "@/lib/auth"
 import { getAllLoans } from "@/db/queries/loans"
 import { getAllMembers } from "@/db/queries/members"
 import { getActiveInterestRates } from "@/db/queries/interest-rates"
@@ -6,11 +7,12 @@ import { LoansClient } from "./components/loans-client"
 import type { Loan } from "@/db/schema"
 
 export default async function LoansPage() {
+  const user = await requireAuth()
   // Fetch data in parallel for faster loading
   const [loans, members, interestRates] = await Promise.all([
-    getAllLoans(),
-    getAllMembers(),
-    getActiveInterestRates(),
+    getAllLoans(user.saccoId),
+    getAllMembers(user.saccoId),
+    getActiveInterestRates(user.saccoId),
   ])
 
   // Calculate statistics

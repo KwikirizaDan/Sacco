@@ -2,6 +2,7 @@
 import { Suspense } from "react"
 import { notFound } from "next/navigation"
 import Link from "next/link"
+import { requireAuth } from "@/lib/auth"
 import { getLoanById } from "@/db/queries/loans"
 import { getAllMembers } from "@/db/queries/members"
 import {
@@ -50,7 +51,13 @@ const statusVariant: Record<
 export default async function LoanDetailPage({ params }: LoanDetailPageProps) {
   const { id } = await params
   return (
-    <Suspense fallback={<div className="text-muted-foreground text-sm p-6">Loading loan details…</div>}>
+    <Suspense
+      fallback={
+        <div className="p-6 text-sm text-muted-foreground">
+          Loading loan details…
+        </div>
+      }
+    >
       <LoanDetailContent id={id} />
     </Suspense>
   )
@@ -70,13 +77,13 @@ function Section({
   aside?: React.ReactNode
 }) {
   return (
-    <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-      <div className="flex items-center justify-between mb-5">
+    <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <div className="mb-5 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
             <Icon className="h-4 w-4 text-muted-foreground" />
           </div>
-          <h2 className="text-sm font-semibold text-foreground uppercase tracking-widest">
+          <h2 className="text-sm font-semibold tracking-widest text-foreground uppercase">
             {title}
           </h2>
         </div>
@@ -91,7 +98,7 @@ function Section({
 
 function InfoGrid({ children }: { children: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4">
+    <div className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3">
       {children}
     </div>
   )
@@ -121,7 +128,7 @@ function InfoItem({
 
   return (
     <div className="flex flex-col gap-1">
-      <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
+      <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
         {label}
       </p>
       <p
@@ -160,9 +167,9 @@ function PaymentTile({
 
   return (
     <div
-      className={`rounded-xl border ${ring} bg-background px-4 py-3 flex flex-col gap-1`}
+      className={`rounded-xl border ${ring} flex flex-col gap-1 bg-background px-4 py-3`}
     >
-      <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
+      <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
         {label}
       </p>
       <p className={`text-lg font-bold ${text}`}>{value}</p>
@@ -173,10 +180,11 @@ function PaymentTile({
 // ── Main content ─────────────────────────────────────────────────────────────
 
 async function LoanDetailContent({ id }: { id: string }) {
-  const loan = await getLoanById(id)
+  const user = await requireAuth()
+  const loan = await getLoanById(id, user.saccoId)
   if (!loan) notFound()
 
-  const members = await getAllMembers()
+  const members = await getAllMembers(user.saccoId)
   const member = members.find((m) => m.id === loan.member_id)
 
   const loanWithMember = {
@@ -209,20 +217,19 @@ async function LoanDetailContent({ id }: { id: string }) {
   ].filter((e) => e.date)
 
   return (
-    <div className="max-w-4xl mx-auto space-y-4">
-
+    <div className="mx-auto max-w-4xl space-y-4">
       {/* ── Page header ── */}
-      <div className="flex items-center justify-between mb-2">
+      <div className="mb-2 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link href="/loans">
-            <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <button className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
               <ArrowLeft className="h-4 w-4" />
               Back to Loans
             </button>
           </Link>
         </div>
         <Link href={`/loans/${id}/contract`}>
-          <Button variant="outline" size="sm" className="rounded-lg gap-2">
+          <Button variant="outline" size="sm" className="gap-2 rounded-lg">
             <FileText className="h-4 w-4" />
             View Contract
           </Button>
@@ -230,29 +237,32 @@ async function LoanDetailContent({ id }: { id: string }) {
       </div>
 
       {/* ── Loan ref + status bar ── */}
-      <div className="bg-card border border-border rounded-2xl px-6 py-5 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-4 rounded-2xl border border-border bg-card px-6 py-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-1">
+          <p className="mb-1 text-xs font-medium tracking-widest text-muted-foreground uppercase">
             Loan Reference
           </p>
-          <h1 className="text-xl font-bold font-mono text-foreground">
+          <h1 className="font-mono text-xl font-bold text-foreground">
             {loan.loan_ref}
           </h1>
         </div>
 
         <div className="flex items-center gap-4">
-          <Badge variant={statusVariant[loan.status] ?? "outline"} className="capitalize text-sm px-3 py-1">
+          <Badge
+            variant={statusVariant[loan.status] ?? "outline"}
+            className="px-3 py-1 text-sm capitalize"
+          >
             {loan.status}
           </Badge>
 
           {loan.status === "active" && (
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground hidden sm:block">
+              <span className="hidden text-xs text-muted-foreground sm:block">
                 Repaid
               </span>
-              <div className="w-28 h-2 bg-muted rounded-full overflow-hidden">
+              <div className="h-2 w-28 overflow-hidden rounded-full bg-muted">
                 <div
-                  className="h-full bg-green-500 rounded-full transition-all"
+                  className="h-full rounded-full bg-green-500 transition-all"
                   style={{ width: `${progress}%` }}
                 />
               </div>
@@ -266,13 +276,13 @@ async function LoanDetailContent({ id }: { id: string }) {
 
       {/* ── Decline reason ── */}
       {loan.decline_reason && (
-        <div className="flex items-start gap-3 p-4 bg-destructive/5 border border-destructive/20 rounded-2xl">
-          <AlertCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+        <div className="flex items-start gap-3 rounded-2xl border border-destructive/20 bg-destructive/5 p-4">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
           <div>
             <p className="text-sm font-semibold text-destructive">
               Decline Reason
             </p>
-            <p className="text-sm text-muted-foreground mt-0.5">
+            <p className="mt-0.5 text-sm text-muted-foreground">
               {loan.decline_reason}
             </p>
           </div>
@@ -280,15 +290,24 @@ async function LoanDetailContent({ id }: { id: string }) {
       )}
 
       {/* ── Two-column: Borrower + Loan Summary ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* Borrower */}
         <Section icon={User} title="Borrower">
           <InfoGrid>
             <InfoItem label="Full Name" value={loanWithMember.member_name} />
-            <InfoItem label="Member Code" value={loanWithMember.member_code} mono />
-            <InfoItem label="Phone" value={loanWithMember.member_phone ?? "—"} />
-            <InfoItem label="Email" value={loanWithMember.member_email ?? "—"} />
+            <InfoItem
+              label="Member Code"
+              value={loanWithMember.member_code}
+              mono
+            />
+            <InfoItem
+              label="Phone"
+              value={loanWithMember.member_phone ?? "—"}
+            />
+            <InfoItem
+              label="Email"
+              value={loanWithMember.member_email ?? "—"}
+            />
           </InfoGrid>
         </Section>
 
@@ -329,7 +348,7 @@ async function LoanDetailContent({ id }: { id: string }) {
 
       {/* ── Payment Schedule ── */}
       <Section icon={Calendar} title="Payment Schedule">
-        <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className="mb-6 grid grid-cols-3 gap-3">
           <PaymentTile
             label="Daily Payment"
             value={formatUGX(loan.daily_payment ?? 0)}
@@ -348,15 +367,23 @@ async function LoanDetailContent({ id }: { id: string }) {
         </div>
 
         {schedule.length > 0 && (
-          <div className="rounded-xl border border-border overflow-hidden">
+          <div className="overflow-hidden rounded-xl border border-border">
             <div className="max-h-64 overflow-y-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/40">
-                    <TableHead className="text-xs uppercase tracking-widest text-muted-foreground">#</TableHead>
-                    <TableHead className="text-xs uppercase tracking-widest text-muted-foreground">Due Date</TableHead>
-                    <TableHead className="text-xs uppercase tracking-widest text-muted-foreground">Payment</TableHead>
-                    <TableHead className="text-xs uppercase tracking-widest text-muted-foreground">Balance</TableHead>
+                    <TableHead className="text-xs tracking-widest text-muted-foreground uppercase">
+                      #
+                    </TableHead>
+                    <TableHead className="text-xs tracking-widest text-muted-foreground uppercase">
+                      Due Date
+                    </TableHead>
+                    <TableHead className="text-xs tracking-widest text-muted-foreground uppercase">
+                      Payment
+                    </TableHead>
+                    <TableHead className="text-xs tracking-widest text-muted-foreground uppercase">
+                      Balance
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -383,11 +410,13 @@ async function LoanDetailContent({ id }: { id: string }) {
 
       {/* ── Notes ── */}
       {loan.notes && (
-        <div className="bg-card border border-border rounded-2xl px-6 py-5 shadow-sm">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-2">
+        <div className="rounded-2xl border border-border bg-card px-6 py-5 shadow-sm">
+          <p className="mb-2 text-xs font-medium tracking-widest text-muted-foreground uppercase">
             Notes
           </p>
-          <p className="text-sm text-foreground leading-relaxed">{loan.notes}</p>
+          <p className="text-sm leading-relaxed text-foreground">
+            {loan.notes}
+          </p>
         </div>
       )}
 
@@ -397,11 +426,11 @@ async function LoanDetailContent({ id }: { id: string }) {
           <div className="relative pl-4">
             {/* vertical connector */}
             {timelineEvents.length > 1 && (
-              <div className="absolute left-[7px] top-3 bottom-3 w-px bg-border" />
+              <div className="absolute top-3 bottom-3 left-[7px] w-px bg-border" />
             )}
             <div className="space-y-4">
               {timelineEvents.map((event, i) => (
-                <div key={i} className="flex items-center gap-4 relative">
+                <div key={i} className="relative flex items-center gap-4">
                   <div
                     className={`h-3 w-3 rounded-full ${event.color} shrink-0 ring-2 ring-background`}
                   />

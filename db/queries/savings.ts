@@ -1,9 +1,13 @@
 import { db } from "@/db"
-import { savingsAccounts, savingsCategories, members, transactions } from "@/db/schema"
-import { eq, desc, sum, count } from "drizzle-orm"
-import { SACCO_ID } from "@/lib/constants"
+import {
+  savingsAccounts,
+  savingsCategories,
+  members,
+  transactions,
+} from "@/db/schema"
+import { eq, desc, sum, count, and } from "drizzle-orm"
 
-export async function getAllSavingsAccounts() {
+export async function getAllSavingsAccounts(saccoId: string) {
   return await db
     .select({
       id: savingsAccounts.id,
@@ -24,31 +28,49 @@ export async function getAllSavingsAccounts() {
     })
     .from(savingsAccounts)
     .leftJoin(members, eq(savingsAccounts.member_id, members.id))
-    .leftJoin(savingsCategories, eq(savingsAccounts.category_id, savingsCategories.id))
-    .where(eq(savingsAccounts.sacco_id, SACCO_ID))
+    .leftJoin(
+      savingsCategories,
+      eq(savingsAccounts.category_id, savingsCategories.id)
+    )
+    .where(eq(savingsAccounts.sacco_id, saccoId))
     .orderBy(desc(savingsAccounts.balance))
 }
 
-export async function getSavingsStats() {
+export async function getSavingsStats(saccoId: string) {
   const [total] = await db
     .select({ total: sum(savingsAccounts.balance), count: count() })
     .from(savingsAccounts)
-    .where(eq(savingsAccounts.sacco_id, SACCO_ID))
+    .where(eq(savingsAccounts.sacco_id, saccoId))
 
   const [locked] = await db
     .select({ count: count() })
     .from(savingsAccounts)
-    .where(eq(savingsAccounts.is_locked, true))
+    .where(
+      and(
+        eq(savingsAccounts.sacco_id, saccoId),
+        eq(savingsAccounts.is_locked, true)
+      )
+    )
 
   const [regular] = await db
     .select({ count: count() })
     .from(savingsAccounts)
-    .where(eq(savingsAccounts.account_type, "regular"))
+    .where(
+      and(
+        eq(savingsAccounts.sacco_id, saccoId),
+        eq(savingsAccounts.account_type, "regular")
+      )
+    )
 
   const [fixed] = await db
     .select({ count: count() })
     .from(savingsAccounts)
-    .where(eq(savingsAccounts.account_type, "fixed"))
+    .where(
+      and(
+        eq(savingsAccounts.sacco_id, saccoId),
+        eq(savingsAccounts.account_type, "fixed")
+      )
+    )
 
   return {
     totalBalance: Number(total?.total ?? 0),
@@ -71,7 +93,7 @@ export async function getSavingsTransactions(accountId: string) {
     .limit(50)
 }
 
-export async function getMembersForSavings() {
+export async function getMembersForSavings(saccoId: string) {
   return await db
     .select({
       id: members.id,
@@ -80,18 +102,18 @@ export async function getMembersForSavings() {
       phone: members.phone,
     })
     .from(members)
-    .where(eq(members.sacco_id, SACCO_ID))
+    .where(eq(members.sacco_id, saccoId))
     .orderBy(members.full_name)
 }
 
-export async function getSavingsCategoriesForSelect() {
+export async function getSavingsCategoriesForSelect(saccoId: string) {
   return await db
     .select()
     .from(savingsCategories)
-    .where(eq(savingsCategories.sacco_id, SACCO_ID))
+    .where(eq(savingsCategories.sacco_id, saccoId))
 }
 
-export async function getSavingsById(id: string) {
+export async function getSavingsById(id: string, saccoId: string) {
   const [account] = await db
     .select({
       id: savingsAccounts.id,
@@ -112,6 +134,8 @@ export async function getSavingsById(id: string) {
     })
     .from(savingsAccounts)
     .leftJoin(members, eq(savingsAccounts.member_id, members.id))
-    .where(eq(savingsAccounts.id, id))
+    .where(
+      and(eq(savingsAccounts.id, id), eq(savingsAccounts.sacco_id, saccoId))
+    )
   return account
 }

@@ -16,7 +16,7 @@ import {
 import { revalidatePath } from "next/cache"
 import { generateMemberCode } from "@/lib/member-code"
 import { sendSms, smsTemplates } from "@/lib/sms"
-import { SACCO_ID } from "@/lib/constants"
+import { getCurrentUser } from "@/lib/auth"
 import { calculateLoan } from "@/lib/pdf/loan-calculator"
 import { z } from "zod"
 import { eq, and, desc } from "drizzle-orm"
@@ -66,6 +66,11 @@ export async function addMemberAction(
   formData: FormData
 ): Promise<MemberFormState> {
   try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return { error: "Unauthorized" }
+    }
+
     const raw = {
       full_name: formData.get("full_name") as string,
       email: formData.get("email") as string,
@@ -91,7 +96,7 @@ export async function addMemberAction(
 
     await smartDb.insert(members).values({
       member_code,
-      sacco_id: SACCO_ID,
+      sacco_id: user.saccoId,
       full_name: parsed.data.full_name,
       email: parsed.data.email || null,
       phone: parsed.data.phone,
@@ -281,7 +286,14 @@ export async function sendMemberSmsAction(
   message: string
 ): Promise<MemberFormState> {
   try {
-    const [member] = await smartDb.select(members).where(eq(members.id, id))
+    const user = await getCurrentUser()
+    if (!user) {
+      return { error: "Unauthorized" }
+    }
+
+    const [member] = await smartDb
+      .select(members)
+      .where(and(eq(members.id, id), eq(members.sacco_id, user.saccoId)))
 
     if (!member) return { error: "Member not found." }
     if (!member.phone) return { error: "Member has no phone number." }
@@ -289,7 +301,7 @@ export async function sendMemberSmsAction(
     await sendSms({ to: member.phone, message })
 
     await smartDb.insert(notifications).values({
-      sacco_id: SACCO_ID,
+      sacco_id: user.saccoId,
       member_id: id,
       title: "SMS Sent",
       body: message,
@@ -309,9 +321,14 @@ export async function sendMemberSmsAction(
 
 export async function getMemberStatsAction(id: string) {
   try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return { error: "Unauthorized" }
+    }
+
     const memberLoans = await smartDb
       .select(loans)
-      .where(and(eq(loans.member_id, id), eq(loans.sacco_id, SACCO_ID)))
+      .where(and(eq(loans.member_id, id), eq(loans.sacco_id, user.saccoId)))
       .orderBy(desc(loans.created_at))
 
     const memberSavings = await smartDb
@@ -319,19 +336,22 @@ export async function getMemberStatsAction(id: string) {
       .where(
         and(
           eq(savingsAccounts.member_id, id),
-          eq(savingsAccounts.sacco_id, SACCO_ID)
+          eq(savingsAccounts.sacco_id, user.saccoId)
         )
       )
 
     const memberFines = await smartDb
       .select(fines)
-      .where(and(eq(fines.member_id, id), eq(fines.sacco_id, SACCO_ID)))
+      .where(and(eq(fines.member_id, id), eq(fines.sacco_id, user.saccoId)))
       .orderBy(desc(fines.created_at))
 
     const memberTransactions = await smartDb
       .select(transactions)
       .where(
-        and(eq(transactions.member_id, id), eq(transactions.sacco_id, SACCO_ID))
+        and(
+          eq(transactions.member_id, id),
+          eq(transactions.sacco_id, user.saccoId)
+        )
       )
       .orderBy(desc(transactions.created_at))
       .limit(20)
@@ -385,6 +405,11 @@ export async function assignLoanAction(
   formData: FormData
 ): Promise<MemberFormState> {
   try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return { error: "Unauthorized" }
+    }
+
     const amount = parseInt(formData.get("amount") as string) * 100
     const interest_rate = formData.get("interest_rate") as string
     const due_date = formData.get("due_date") as string
@@ -395,7 +420,7 @@ export async function assignLoanAction(
 
     const [member] = await smartDb
       .select(members)
-      .where(eq(members.id, memberId))
+      .where(and(eq(members.id, memberId), eq(members.sacco_id, user.saccoId)))
 
     if (!member) return { error: "Member not found." }
 
@@ -410,7 +435,7 @@ export async function assignLoanAction(
     })
 
     await smartDb.insert(loans).values({
-      sacco_id: SACCO_ID,
+      sacco_id: user.saccoId,
       member_id: memberId,
       loan_ref,
       amount,
@@ -447,6 +472,9 @@ export async function addSavingsAction(
   formData: FormData
 ): Promise<MemberFormState> {
   try {
+    const user = await getCurrentUser()
+    if (!user) return { error: "Unauthorized." }
+
     const amount = parseInt(formData.get("amount") as string) * 100
     const narration = formData.get("narration") as string
 
@@ -463,14 +491,14 @@ export async function addSavingsAction(
       .where(
         and(
           eq(savingsAccounts.member_id, memberId),
-          eq(savingsAccounts.sacco_id, SACCO_ID)
+          eq(savingsAccounts.sacco_id, user.saccoId)
         )
       )
 
     if (existingAccounts.length === 0) {
       const account_number = `SAV-${Date.now()}`
       await smartDb.insert(savingsAccounts).values({
-        sacco_id: SACCO_ID,
+        sacco_id: user.saccoId,
         member_id: memberId,
         account_number,
         balance: amount,
@@ -487,7 +515,7 @@ export async function addSavingsAction(
     }
 
     await smartDb.insert(transactions).values({
-      sacco_id: SACCO_ID,
+      sacco_id: user.saccoId,
       member_id: memberId,
       type: "savings_deposit",
       amount,
@@ -529,12 +557,15 @@ export async function importMembersAction(
   }>
 ): Promise<MemberFormState & { imported?: number }> {
   try {
+    const user = await getCurrentUser()
+    if (!user) return { error: "Unauthorized." }
+
     let imported = 0
 
     for (const row of rows) {
       const member_code = await generateMemberCode()
       await smartDb.insert(members).values({
-        sacco_id: SACCO_ID,
+        sacco_id: user.saccoId,
         member_code,
         full_name: row.full_name,
         phone: row.phone || null,

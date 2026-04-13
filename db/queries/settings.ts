@@ -7,44 +7,43 @@ import {
   fineCategories,
 } from "@/db/schema"
 import { eq } from "drizzle-orm"
-import { SACCO_ID } from "@/lib/constants"
 
-export async function getSaccoSettings() {
-  const [sacco] = await db.select().from(saccos).where(eq(saccos.id, SACCO_ID))
+export async function getSaccoSettings(saccoId: string) {
+  const [sacco] = await db.select().from(saccos).where(eq(saccos.id, saccoId))
   return sacco
 }
 
-export async function getInterestRates() {
+export async function getInterestRates(saccoId: string) {
   return await db
     .select()
     .from(interestRates)
-    .where(eq(interestRates.sacco_id, SACCO_ID))
+    .where(eq(interestRates.sacco_id, saccoId))
     .orderBy(interestRates.min_amount)
 }
 
-export async function getLoanCategories() {
+export async function getLoanCategories(saccoId: string) {
   return await db
     .select()
     .from(loanCategories)
-    .where(eq(loanCategories.sacco_id, SACCO_ID))
+    .where(eq(loanCategories.sacco_id, saccoId))
 }
 
-export async function getSavingsCategories() {
+export async function getSavingsCategories(saccoId: string) {
   return await db
     .select()
     .from(savingsCategories)
-    .where(eq(savingsCategories.sacco_id, SACCO_ID))
+    .where(eq(savingsCategories.sacco_id, saccoId))
 }
 
-export async function getFineCategories() {
+export async function getFineCategories(saccoId: string) {
   return await db
     .select()
     .from(fineCategories)
-    .where(eq(fineCategories.sacco_id, SACCO_ID))
+    .where(eq(fineCategories.sacco_id, saccoId))
 }
 
-export async function getPaymentSettings() {
-  const sacco = await getSaccoSettings()
+export async function getPaymentSettings(saccoId: string) {
+  const sacco = await getSaccoSettings(saccoId)
   const settings = (() => {
     try {
       return JSON.parse(sacco?.settings ?? "{}")

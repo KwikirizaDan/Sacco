@@ -3,7 +3,7 @@ import type { Metadata, Viewport } from "next"
 import { Toaster } from "sonner"
 import { ThemeProvider } from "@/components/providers/theme-provider"
 import { QueryProvider } from "@/components/providers/query-provider"
-import { getCurrentUser, checkOnboarding } from "@/lib/auth"
+import { getCurrentUser } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { AppSidebar } from "@/components/layout/app-sidebar"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
@@ -33,11 +33,6 @@ export default async function RootLayout({
   let body = children
 
   if (user) {
-    const { needsOnboarding } = await checkOnboarding()
-    if (needsOnboarding) {
-      redirect("/auth/onboarding")
-    }
-
     body = (
       <SidebarProvider>
         <AppSidebar user={user} />

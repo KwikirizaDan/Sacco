@@ -13,7 +13,7 @@ export interface SessionData {
   isLoggedIn: boolean
 }
 
-const SESSION_OPTIONS = {
+export const SESSION_OPTIONS = {
   password: process.env.SESSION_SECRET as string,
   cookieName: "sacco_session",
   cookieOptions: {
@@ -119,25 +119,5 @@ export async function getPagePermissions() {
     canCreateFieldAgents: perms.includes("create_field_agents"),
     role: user.role,
     user,
-  }
-}
-
-export async function checkOnboarding(): Promise<{
-  needsOnboarding: boolean
-  sacco: typeof saccos.$inferSelect | null
-}> {
-  const user = await getCurrentUser()
-  if (!user) return { needsOnboarding: false, sacco: null }
-  try {
-    const [sacco] = await db
-      .select()
-      .from(saccos)
-      .where(eq(saccos.id, user.saccoId))
-      .limit(1)
-    const needsOnboarding =
-      !sacco?.onboarding_completed && user.role === "admin"
-    return { needsOnboarding, sacco: sacco ?? null }
-  } catch {
-    return { needsOnboarding: false, sacco: null }
   }
 }

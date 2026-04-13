@@ -82,6 +82,7 @@ export const userRoleEnum = pgEnum("user_role", [
   "cashier",
   "field_agent",
 ])
+export const cmsUserRoleEnum = pgEnum("cms_user_role", ["super_admin", "admin"])
 
 export const saccos = pgTable("saccos", {
   id: uuid("id")
@@ -98,7 +99,7 @@ export const saccos = pgTable("saccos", {
   registration_number: text("registration_number"),
   settings: text("settings").default("{}"),
   is_active: boolean("is_active").default(true),
-  onboarding_completed: boolean("onboarding_completed").default(false),
+  onboarding_completed: boolean("onboarding_completed").default(true),
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),
 })

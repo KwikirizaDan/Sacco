@@ -1,40 +1,44 @@
+import { requireAuth } from "@/lib/auth"
 import { getAllComplaints } from "@/db/queries/complaints"
+import { getMembersForSelect } from "@/db/queries/members"
 import { db } from "@/db"
-import { members } from "@/db/schema"
-import { eq, count } from "drizzle-orm"
-import { SACCO_ID } from "@/lib/constants"
-import { ComplaintsClient } from "./components/complaints-client"
 import { complaints } from "@/db/schema"
+import { eq, count, and } from "drizzle-orm"
+import { ComplaintsClient } from "./components/complaints-client"
 
 export default async function ComplaintsPage() {
+  const user = await requireAuth()
   const [allComplaints, allMembers] = await Promise.all([
-    getAllComplaints(),
-    db
-      .select({
-        id: members.id,
-        full_name: members.full_name,
-        member_code: members.member_code,
-        phone: members.phone,
-      })
-      .from(members)
-      .where(eq(members.sacco_id, SACCO_ID))
-      .orderBy(members.full_name),
+    getAllComplaints(user.saccoId),
+    getMembersForSelect(user.saccoId),
   ])
 
   const [openCount] = await db
     .select({ count: count() })
     .from(complaints)
-    .where(eq(complaints.status, "open"))
+    .where(
+      and(eq(complaints.status, "open"), eq(complaints.sacco_id, user.saccoId))
+    )
 
   const [inProgressCount] = await db
     .select({ count: count() })
     .from(complaints)
-    .where(eq(complaints.status, "in_progress"))
+    .where(
+      and(
+        eq(complaints.status, "in_progress"),
+        eq(complaints.sacco_id, user.saccoId)
+      )
+    )
 
   const [resolvedCount] = await db
     .select({ count: count() })
     .from(complaints)
-    .where(eq(complaints.status, "resolved"))
+    .where(
+      and(
+        eq(complaints.status, "resolved"),
+        eq(complaints.sacco_id, user.saccoId)
+      )
+    )
 
   return (
     <ComplaintsClient

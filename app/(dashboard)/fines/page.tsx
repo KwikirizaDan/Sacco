@@ -1,28 +1,16 @@
+import { requireAuth } from "@/lib/auth"
 import { getAllFines, getFinesStats } from "@/db/queries/fines"
-import { db } from "@/db"
-import { members, fineCategories } from "@/db/schema"
-import { eq } from "drizzle-orm"
-import { SACCO_ID } from "@/lib/constants"
+import { getMembersForSelect } from "@/db/queries/members"
+import { getFineCategories } from "@/db/queries/settings"
 import { FinesClient } from "./components/fines-client"
 
 export default async function FinesPage() {
+  const user = await requireAuth()
   const [allFines, stats, allMembers, categories] = await Promise.all([
-    getAllFines(),
-    getFinesStats(),
-    db
-      .select({
-        id: members.id,
-        full_name: members.full_name,
-        member_code: members.member_code,
-        phone: members.phone,
-      })
-      .from(members)
-      .where(eq(members.sacco_id, SACCO_ID))
-      .orderBy(members.full_name),
-    db
-      .select()
-      .from(fineCategories)
-      .where(eq(fineCategories.sacco_id, SACCO_ID)),
+    getAllFines(user.saccoId),
+    getFinesStats(user.saccoId),
+    getMembersForSelect(user.saccoId),
+    getFineCategories(user.saccoId),
   ])
 
   return (

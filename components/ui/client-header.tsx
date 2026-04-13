@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Bell, Sun, Moon, Monitor } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -24,15 +25,18 @@ interface ClientHeaderProps {
 }
 
 export function ClientHeader({ user }: ClientHeaderProps) {
-  const { theme, setTheme } = useTheme()
+  const { theme, resolvedTheme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const toggleTheme = () => {
     if (theme === "light") setTheme("dark")
     else if (theme === "dark") setTheme("system")
     else setTheme("light")
   }
-
-  const ThemeIcon = theme === "light" ? Sun : theme === "dark" ? Moon : Monitor
 
   return (
     <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
@@ -48,7 +52,17 @@ export function ClientHeader({ user }: ClientHeaderProps) {
         onClick={toggleTheme}
         suppressHydrationWarning
       >
-        <ThemeIcon className="h-5 w-5" />
+        {mounted ? (
+          <>
+            {resolvedTheme === "light" && <Sun className="h-5 w-5" />}
+            {resolvedTheme === "dark" && <Moon className="h-5 w-5" />}
+            {(!resolvedTheme || resolvedTheme === "system") && (
+              <Monitor className="h-5 w-5" />
+            )}
+          </>
+        ) : (
+          <Monitor className="h-5 w-5" />
+        )}
       </Button>
       <span
         className={[

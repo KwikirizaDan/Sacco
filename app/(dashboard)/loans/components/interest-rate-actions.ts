@@ -2,6 +2,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { getCurrentUser } from "@/lib/auth"
 import {
   addInterestRate,
   updateInterestRate,
@@ -22,13 +23,18 @@ export async function addInterestRateAction(
   data: CreateInterestRateInput
 ): Promise<InterestRateActionState> {
   try {
-    await addInterestRate(data)
+    const user = await getCurrentUser()
+    if (!user) {
+      throw new Error("Unauthorized")
+    }
+    await addInterestRate(data, user.saccoId)
     revalidatePath("/loans")
     return { success: true }
   } catch (error) {
     console.error("Error in addInterestRateAction:", error)
     return {
-      error: error instanceof Error ? error.message : "Failed to add interest rate",
+      error:
+        error instanceof Error ? error.message : "Failed to add interest rate",
     }
   }
 }
@@ -40,13 +46,20 @@ export async function updateInterestRateAction(
   data: UpdateInterestRateInput
 ): Promise<InterestRateActionState> {
   try {
-    await updateInterestRate(id, data)
+    const user = await getCurrentUser()
+    if (!user) {
+      throw new Error("Unauthorized")
+    }
+    await updateInterestRate(id, data, user.saccoId)
     revalidatePath("/loans")
     return { success: true }
   } catch (error) {
     console.error("Error in updateInterestRateAction:", error)
     return {
-      error: error instanceof Error ? error.message : "Failed to update interest rate",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to update interest rate",
     }
   }
 }
@@ -57,7 +70,11 @@ export async function updateInterestRateAction(
 
 export async function getInterestRatesAction() {
   try {
-    const rates = await getActiveInterestRates()
+    const user = await getCurrentUser()
+    if (!user) {
+      throw new Error("Unauthorized")
+    }
+    const rates = await getActiveInterestRates(user.saccoId)
     return rates
   } catch (error) {
     console.error("Error in getInterestRatesAction:", error)
@@ -71,13 +88,20 @@ export async function deleteInterestRateAction(
   id: string
 ): Promise<InterestRateActionState> {
   try {
-    await deleteInterestRate(id)
+    const user = await getCurrentUser()
+    if (!user) {
+      throw new Error("Unauthorized")
+    }
+    await deleteInterestRate(id, user.saccoId)
     revalidatePath("/loans")
     return { success: true }
   } catch (error) {
     console.error("Error in deleteInterestRateAction:", error)
     return {
-      error: error instanceof Error ? error.message : "Failed to delete interest rate",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to delete interest rate",
     }
   }
 }

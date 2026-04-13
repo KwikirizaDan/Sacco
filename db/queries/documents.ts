@@ -1,9 +1,8 @@
 import { db } from "@/db"
 import { documents, members } from "@/db/schema"
 import { eq, desc } from "drizzle-orm"
-import { SACCO_ID } from "@/lib/constants"
 
-export async function getAllDocuments() {
+export async function getAllDocuments(saccoId: string) {
   return await db
     .select({
       id: documents.id,
@@ -19,11 +18,11 @@ export async function getAllDocuments() {
     })
     .from(documents)
     .leftJoin(members, eq(documents.member_id, members.id))
-    .where(eq(documents.sacco_id, SACCO_ID))
+    .where(eq(documents.sacco_id, saccoId))
     .orderBy(desc(documents.created_at))
 }
 
-export async function getMembersForDocuments() {
+export async function getMembersForDocuments(saccoId: string) {
   return await db
     .select({
       id: members.id,
@@ -31,6 +30,6 @@ export async function getMembersForDocuments() {
       member_code: members.member_code,
     })
     .from(members)
-    .where(eq(members.sacco_id, SACCO_ID))
+    .where(eq(members.sacco_id, saccoId))
     .orderBy(members.full_name)
 }

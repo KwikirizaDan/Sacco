@@ -1,9 +1,8 @@
 import { db } from "@/db"
 import { complaints, members } from "@/db/schema"
 import { eq, desc } from "drizzle-orm"
-import { SACCO_ID } from "@/lib/constants"
 
-export async function getAllComplaints() {
+export async function getAllComplaints(saccoId: string) {
   return await db
     .select({
       id: complaints.id,
@@ -27,6 +26,6 @@ export async function getAllComplaints() {
     })
     .from(complaints)
     .leftJoin(members, eq(complaints.member_id, members.id))
-    .where(eq(complaints.sacco_id, SACCO_ID))
+    .where(eq(complaints.sacco_id, saccoId))
     .orderBy(desc(complaints.created_at))
 }

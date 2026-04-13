@@ -43,6 +43,12 @@ export async function POST(req: Request) {
         { status: 403 }
       )
 
+    if (!user.sacco_id)
+      return NextResponse.json(
+        { error: "Invalid user configuration" },
+        { status: 500 }
+      )
+
     const valid = await bcrypt.compare(password, user.password_hash)
     if (!valid)
       return NextResponse.json(
@@ -55,21 +61,13 @@ export async function POST(req: Request) {
       .set({ last_login_at: new Date(), updated_at: new Date() })
       .where(eq(saccoUsers.id, user.id))
 
-    const [sacco] = await db
-      .select({ onboarding_completed: saccos.onboarding_completed })
-      .from(saccos)
-      .where(eq(saccos.id, user.sacco_id))
-      .limit(1)
-    const needsOnboarding =
-      user.role === "admin" && !sacco?.onboarding_completed
-
     const cookieStore = await cookies()
     const session = await getIronSession<SessionData>(
       cookieStore,
       SESSION_OPTIONS
     )
     session.userId = user.id
-    session.saccoId = user.sacco_id
+    session.saccoId = user.sacco_id!
     session.role = user.role as SessionData["role"]
     session.fullName = user.full_name
     session.email = user.email
@@ -80,7 +78,6 @@ export async function POST(req: Request) {
       success: true,
       role: user.role,
       fullName: user.full_name,
-      needsOnboarding,
     })
   } catch (err) {
     console.error("[LOGIN]", err)

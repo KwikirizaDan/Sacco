@@ -1,17 +1,16 @@
 import { db } from "@/db"
 import { members } from "@/db/schema"
 import { eq } from "drizzle-orm"
-import { SACCO_ID } from "@/lib/constants"
 
-export async function getAllMembers() {
+export async function getAllMembers(saccoId: string) {
   return await db
     .select()
     .from(members)
-    .where(eq(members.sacco_id, SACCO_ID))
+    .where(eq(members.sacco_id, saccoId))
     .orderBy(members.created_at)
 }
 
-export async function getMembersForSelect() {
+export async function getMembersForSelect(saccoId: string) {
   return await db
     .select({
       id: members.id,
@@ -20,6 +19,6 @@ export async function getMembersForSelect() {
       phone: members.phone,
     })
     .from(members)
-    .where(eq(members.sacco_id, SACCO_ID))
+    .where(eq(members.sacco_id, saccoId))
     .orderBy(members.full_name)
 }
