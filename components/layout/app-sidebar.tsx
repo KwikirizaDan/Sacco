@@ -216,46 +216,44 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
 
       {/* Nav items */}
       <SidebarContent suppressHydrationWarning>
-        {mounted ? (
-          filteredGroups.map((group) => (
-            <SidebarGroup key={group.label}>
-              <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-              <SidebarMenu>
-                {group.items.map((item) => {
-                  const isActive =
-                    pathname === item.href ||
-                    pathname.startsWith(item.href + "/")
-                  return (
-                    <SidebarMenuItem key={item.href}>
-                      <SidebarMenuButton
-                        isActive={isActive}
-                        onClick={() => router.push(item.href)}
-                      >
-                        <item.icon className="h-4 w-4 shrink-0" />
-                        <span>{item.title}</span>
+        {filteredGroups.map((group) => (
+          <SidebarGroup key={group.label} suppressHydrationWarning>
+            <SidebarGroupLabel suppressHydrationWarning>
+              {mounted ? (
+                group.label
+              ) : (
+                <div className="h-4 animate-pulse rounded bg-muted" />
+              )}
+            </SidebarGroupLabel>
+            <SidebarMenu suppressHydrationWarning>
+              {mounted
+                ? group.items.map((item) => {
+                    const isActive =
+                      pathname === item.href ||
+                      pathname.startsWith(item.href + "/")
+                    return (
+                      <SidebarMenuItem key={item.href}>
+                        <SidebarMenuButton
+                          isActive={isActive}
+                          onClick={() => router.push(item.href)}
+                        >
+                          <item.icon className="h-4 w-4 shrink-0" />
+                          <span>{item.title}</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    )
+                  })
+                : Array.from({ length: group.items.length }).map((_, i) => (
+                    <SidebarMenuItem key={i}>
+                      <SidebarMenuButton>
+                        <div className="h-4 w-4 animate-pulse rounded bg-muted" />
+                        <div className="h-4 flex-1 animate-pulse rounded bg-muted" />
                       </SidebarMenuButton>
                     </SidebarMenuItem>
-                  )
-                })}
-              </SidebarMenu>
-            </SidebarGroup>
-          ))
-        ) : (
-          // Loading skeleton for nav items
-          <div className="space-y-4 p-4">
-            <div className="h-4 animate-pulse rounded bg-muted" />
-            <div className="space-y-2">
-              <div className="h-8 animate-pulse rounded bg-muted" />
-              <div className="h-8 animate-pulse rounded bg-muted" />
-              <div className="h-8 animate-pulse rounded bg-muted" />
-            </div>
-            <div className="h-4 animate-pulse rounded bg-muted" />
-            <div className="space-y-2">
-              <div className="h-8 animate-pulse rounded bg-muted" />
-              <div className="h-8 animate-pulse rounded bg-muted" />
-            </div>
-          </div>
-        )}
+                  ))}
+            </SidebarMenu>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
 
       {/* User footer with logout */}
