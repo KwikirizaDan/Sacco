@@ -161,8 +161,8 @@ export function MemberProfile({
             sacco || {
               name: "SACCO",
               address: "Address not available",
-              phone: "Phone not available",
-              email: "Email not available",
+              contact_phone: "Phone not available",
+              contact_email: "Email not available",
             }
           }
         />

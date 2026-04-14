@@ -70,11 +70,11 @@ export function PdfButtons({ member }: PdfButtonsProps) {
           sacco={{
             name: sacco.name,
             address: sacco.address,
-            phone: sacco.contact_phone,
-            email: sacco.contact_email,
-            logoUrl: sacco.logo_url,
+            contact_phone: sacco.contact_phone,
+            contact_email: sacco.contact_email,
+            logo_url: sacco.logo_url,
             tagline: sacco.tagline,
-            primaryColor: sacco.primary_color,
+            primary_color: sacco.primary_color,
           }}
         />
       )

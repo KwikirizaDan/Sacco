@@ -178,11 +178,11 @@ interface ApplicationFormProps {
   sacco: {
     name: string
     address?: string
-    phone?: string
-    email?: string
-    logoUrl?: string
+    contact_phone?: string
+    contact_email?: string
+    logo_url?: string
     tagline?: string
-    primaryColor?: string
+    primary_color?: string
   }
 }
 
@@ -203,7 +203,7 @@ export function ApplicationFormDocument({
   member,
   sacco,
 }: ApplicationFormProps) {
-  const primaryColor = sacco.primaryColor || "#16a34a"
+  const primaryColor = sacco.primary_color || "#16a34a"
 
   const dynamicStyles = StyleSheet.create({
     sectionTitle: {
@@ -229,11 +229,11 @@ export function ApplicationFormDocument({
         <SaccoHeader
           name={sacco.name}
           address={sacco.address}
-          phone={sacco.phone}
-          email={sacco.email}
-          logoUrl={sacco.logoUrl}
+          phone={sacco.contact_phone}
+          email={sacco.contact_email}
+          logoUrl={sacco.logo_url}
           tagline={sacco.tagline}
-          primaryColor={sacco.primaryColor}
+          primaryColor={sacco.primary_color}
         />
 
         {/* Title */}

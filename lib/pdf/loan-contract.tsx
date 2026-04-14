@@ -190,6 +190,7 @@ interface LoanContractProps {
     email?: string
     logoUrl?: string
     tagline?: string
+    primaryColor?: string
   }
 }
 
@@ -230,6 +231,7 @@ export function LoanContractDocument({
           email={sacco.email}
           logoUrl={sacco.logoUrl}
           tagline={sacco.tagline}
+          primaryColor={sacco.primaryColor}
         />
 
         <Text style={styles.title}>LOAN AGREEMENT CONTRACT</Text>
