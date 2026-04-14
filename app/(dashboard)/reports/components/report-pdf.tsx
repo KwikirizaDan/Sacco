@@ -9,6 +9,7 @@ import { toast } from "sonner"
 
 interface ReportPdfButtonProps {
   type: "overview" | "loans" | "savings" | "members" | "fines" | "transactions"
+  sacco: any
   stats: any
   loans?: any[]
   savings?: any[]
@@ -20,15 +21,9 @@ interface ReportPdfButtonProps {
   label?: string
 }
 
-const SACCO = {
-  name: "My SACCO",
-  address: "Kampala, Uganda",
-  phone: "+256 700 000 000",
-  email: "info@sacco.ug",
-}
-
 export function ReportPdfButton({
   type,
+  sacco,
   stats,
   loans,
   savings,
@@ -55,7 +50,7 @@ export function ReportPdfButton({
           transactions={transactions}
           complaints={complaints}
           notifications={notifications}
-          sacco={SACCO}
+          sacco={sacco}
         />
       )
       const blob = await pdf(doc).toBlob()
@@ -82,9 +77,9 @@ export function ReportPdfButton({
       className="border-teal-300 text-teal-600 hover:bg-teal-50 dark:border-teal-700 dark:text-teal-400 dark:hover:bg-teal-950"
     >
       {loading ? (
-        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
       ) : (
-        <FileText className="h-4 w-4 mr-2" />
+        <FileText className="mr-2 h-4 w-4" />
       )}
       {label}
     </Button>

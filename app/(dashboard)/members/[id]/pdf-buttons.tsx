@@ -9,13 +9,6 @@ import { MemberIdCardDocument } from "@/lib/pdf/member-id-card"
 import { ApplicationFormDocument } from "@/lib/pdf/application-form"
 import { toast } from "sonner"
 
-const SACCO = {
-  name: "My SACCO",
-  address: "Kampala, Uganda",
-  phone: "+256 700 000 000",
-  email: "info@sacco.ug",
-}
-
 interface PdfButtonsProps {
   member: Member
 }
@@ -27,11 +20,16 @@ export function PdfButtons({ member }: PdfButtonsProps) {
   const downloadIdCard = async () => {
     setLoadingId(true)
     try {
+      // Fetch SACCO data
+      const saccoResponse = await fetch("/api/settings")
+      let saccoName = "SACCO"
+      if (saccoResponse.ok) {
+        const sacco = await saccoResponse.json()
+        saccoName = sacco.name || "SACCO"
+      }
+
       const doc = (
-        <MemberIdCardDocument
-          member={member}
-          sacco={{ name: SACCO.name }}
-        />
+        <MemberIdCardDocument member={member} sacco={{ name: saccoName }} />
       )
       const blob = await pdf(doc).toBlob()
       const url = URL.createObjectURL(blob)
@@ -51,12 +49,22 @@ export function PdfButtons({ member }: PdfButtonsProps) {
   const downloadApplicationForm = async () => {
     setLoadingForm(true)
     try {
-      const doc = (
-        <ApplicationFormDocument
-          member={member}
-          sacco={SACCO}
-        />
-      )
+      // Fetch SACCO data
+      const saccoResponse = await fetch("/api/settings")
+      let sacco
+      if (saccoResponse.ok) {
+        sacco = await saccoResponse.json()
+      } else {
+        // Fallback to basic SACCO info
+        sacco = {
+          name: "SACCO",
+          address: "Address not available",
+          contact_phone: "Phone not available",
+          contact_email: "Email not available",
+        }
+      }
+
+      const doc = <ApplicationFormDocument member={member} sacco={sacco} />
       const blob = await pdf(doc).toBlob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
@@ -82,9 +90,9 @@ export function PdfButtons({ member }: PdfButtonsProps) {
         disabled={loadingId}
       >
         {loadingId ? (
-          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
         ) : (
-          <CreditCard className="h-4 w-4 mr-2" />
+          <CreditCard className="mr-2 h-4 w-4" />
         )}
         Generate ID Card
       </Button>
@@ -97,9 +105,9 @@ export function PdfButtons({ member }: PdfButtonsProps) {
         disabled={loadingForm}
       >
         {loadingForm ? (
-          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
         ) : (
-          <FileText className="h-4 w-4 mr-2" />
+          <FileText className="mr-2 h-4 w-4" />
         )}
         Application Form
       </Button>

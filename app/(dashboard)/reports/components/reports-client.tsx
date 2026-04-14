@@ -117,6 +117,7 @@ interface ReportsClientProps {
     sentNotifications: number
     failedNotifications: number
   }
+  sacco: any
   loans: any[]
   savings: any[]
   members: any[]
@@ -213,6 +214,7 @@ const tabs = [
 
 export function ReportsClient({
   stats,
+  sacco,
   loans,
   savings,
   members,
@@ -425,6 +427,7 @@ export function ReportsClient({
           </div>
           <ReportPdfButton
             type="overview"
+            sacco={sacco}
             stats={stats}
             loans={filteredLoans}
             savings={filteredSavings}
@@ -438,6 +441,7 @@ export function ReportsClient({
         </div>
         <ReportPdfButton
           type="overview"
+          sacco={sacco}
           stats={stats}
           loans={loans}
           savings={savings}
@@ -889,6 +893,7 @@ export function ReportsClient({
                   </Button>
                   <ReportPdfButton
                     type="loans"
+                    sacco={sacco}
                     stats={stats}
                     loans={filteredLoans}
                     label="PDF"
@@ -1009,6 +1014,7 @@ export function ReportsClient({
                   </Button>
                   <ReportPdfButton
                     type="savings"
+                    sacco={sacco}
                     stats={stats}
                     savings={filteredSavings}
                     label="PDF"

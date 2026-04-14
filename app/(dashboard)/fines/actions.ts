@@ -21,14 +21,29 @@ export type FineFormState = {
 }
 
 const fineSchema = z.object({
-  member_id: z.string().uuid("Please select a member"),
-  category_id: z.string().optional(),
+  member_id: z
+    .string()
+    .min(1, "Please select a member")
+    .uuid("Invalid member selected"),
+  category_id: z
+    .string()
+    .optional()
+    .transform((val) => (val === "" ? undefined : val)),
   amount: z.coerce.number().positive("Amount must be greater than 0"),
   reason: z.string().min(2, "Reason is required"),
-  description: z.string().optional(),
+  description: z
+    .string()
+    .optional()
+    .transform((val) => (val === "" ? undefined : val)),
   priority: z.string().default("normal"),
-  due_date: z.string().optional(),
-  notes: z.string().optional(),
+  due_date: z
+    .string()
+    .optional()
+    .transform((val) => (val === "" ? undefined : val)),
+  notes: z
+    .string()
+    .optional()
+    .transform((val) => (val === "" ? undefined : val)),
 })
 
 // ─── Add Fine ─────────────────────────────────────────────────────────────────
@@ -41,15 +56,26 @@ export async function addFineAction(
     const user = await getCurrentUser()
     if (!user) return { error: "Not authenticated." }
 
+    const member_id = formData.get("member_id") as string
+    const amount = formData.get("amount") as string
+    const reason = formData.get("reason") as string
+
+    // Basic validation before Zod
+    if (!member_id) return { error: "Please select a member" }
+    if (!amount || isNaN(parseFloat(amount)))
+      return { error: "Please enter a valid amount" }
+    if (!reason || reason.trim().length < 2)
+      return { error: "Please provide a reason (minimum 2 characters)" }
+
     const raw = {
-      member_id: formData.get("member_id") as string,
-      category_id: formData.get("category_id") as string,
-      amount: formData.get("amount") as string,
-      reason: formData.get("reason") as string,
-      description: formData.get("description") as string,
+      member_id,
+      category_id: (formData.get("category_id") as string) || undefined,
+      amount,
+      reason,
+      description: (formData.get("description") as string) || undefined,
       priority: (formData.get("priority") as string) || "normal",
-      due_date: formData.get("due_date") as string,
-      notes: formData.get("notes") as string,
+      due_date: (formData.get("due_date") as string) || undefined,
+      notes: (formData.get("notes") as string) || undefined,
     }
 
     const parsed = fineSchema.safeParse(raw)
@@ -66,14 +92,14 @@ export async function addFineAction(
     await smartDb.insert(fines).values({
       sacco_id: user.saccoId,
       member_id: parsed.data.member_id,
-      category_id: parsed.data.category_id || null,
+      category_id: parsed.data.category_id ?? null,
       fine_ref,
       amount: amountInCents,
       reason: parsed.data.reason,
-      description: parsed.data.description || null,
-      priority: parsed.data.priority,
-      due_date: parsed.data.due_date || null,
-      notes: parsed.data.notes || null,
+      description: parsed.data.description ?? null,
+      priority: parsed.data.priority ?? "normal",
+      due_date: parsed.data.due_date ?? null,
+      notes: parsed.data.notes ?? null,
       status: "pending",
     })
 

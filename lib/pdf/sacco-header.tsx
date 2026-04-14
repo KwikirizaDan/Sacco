@@ -56,14 +56,16 @@ interface SaccoHeaderProps {
   phone?: string
   email?: string
   logoUrl?: string
+  tagline?: string
 }
 
 export function SaccoHeader({
-  name = "My SACCO",
-  address = "Kampala, Uganda",
-  phone = "+256 700 000 000",
-  email = "info@sacco.ug",
+  name,
+  address,
+  phone,
+  email,
   logoUrl,
+  tagline,
 }: SaccoHeaderProps) {
   return (
     <View style={styles.header}>
@@ -72,7 +74,7 @@ export function SaccoHeader({
       ) : (
         <View style={styles.logoPlaceholder}>
           <Text style={styles.logoText}>
-            {name.slice(0, 1).toUpperCase()}
+            {(name || "S").slice(0, 1).toUpperCase()}
           </Text>
         </View>
       )}
@@ -80,9 +82,10 @@ export function SaccoHeader({
         <Text style={styles.saccoName}>{name}</Text>
         <Text style={styles.saccoDetails}>{address}</Text>
         <Text style={styles.saccoDetails}>
-          Tel: {phone} | Email: {email}
+          {phone && `Tel: ${phone}`} {phone && email && " | "}{" "}
+          {email && `Email: ${email}`}
         </Text>
-        <Text style={styles.tagline}>Save · Grow · Thrive</Text>
+        {tagline && <Text style={styles.tagline}>{tagline}</Text>}
       </View>
     </View>
   )

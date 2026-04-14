@@ -75,15 +75,9 @@ import type {
 import { MemberIdCardDocument } from "@/lib/pdf/member-id-card"
 import { ApplicationFormDocument } from "@/lib/pdf/application-form"
 
-const SACCO = {
-  name: "My SACCO",
-  address: "Kampala, Uganda",
-  phone: "+256 700 000 000",
-  email: "info@sacco.ug",
-}
-
 interface MemberProfileProps {
   member: Member
+  sacco: any
   loans: Loan[]
   savings: SavingsAccount[]
   fines: Fine[]
@@ -98,6 +92,7 @@ interface MemberProfileProps {
 
 export function MemberProfile({
   member,
+  sacco,
   loans,
   savings,
   fines,
@@ -133,7 +128,10 @@ export function MemberProfile({
     setLoadingId(true)
     try {
       const doc = (
-        <MemberIdCardDocument member={member} sacco={{ name: SACCO.name }} />
+        <MemberIdCardDocument
+          member={member}
+          sacco={{ name: sacco?.name || "SACCO" }}
+        />
       )
       const blob = await pdf(doc).toBlob()
       const url = URL.createObjectURL(blob)
@@ -153,7 +151,19 @@ export function MemberProfile({
   const downloadApplicationForm = async () => {
     setLoadingForm(true)
     try {
-      const doc = <ApplicationFormDocument member={member} sacco={SACCO} />
+      const doc = (
+        <ApplicationFormDocument
+          member={member}
+          sacco={
+            sacco || {
+              name: "SACCO",
+              address: "Address not available",
+              phone: "Phone not available",
+              email: "Email not available",
+            }
+          }
+        />
+      )
       const blob = await pdf(doc).toBlob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")

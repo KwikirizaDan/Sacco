@@ -4,8 +4,18 @@ import { useActionState, useState, useEffect } from "react"
 import { useDropzone } from "react-dropzone"
 import Image from "next/image"
 import { toast } from "sonner"
-import { updateGeneralSettingsAction, uploadLogoAction, SettingsState } from "../actions"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import {
+  updateGeneralSettingsAction,
+  uploadLogoAction,
+  SettingsState,
+} from "../actions"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -53,11 +63,11 @@ export function GeneralTab({ sacco }: { sacco: any }) {
   })
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="max-w-2xl space-y-6">
       {/* Logo Upload */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-base">
             <Building2 className="h-4 w-4" />
             SACCO Logo
           </CardTitle>
@@ -65,9 +75,15 @@ export function GeneralTab({ sacco }: { sacco: any }) {
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-6">
-            <div className="h-20 w-20 rounded-xl border-2 border-muted overflow-hidden bg-muted flex items-center justify-center shrink-0">
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border-2 border-muted bg-muted">
               {logoUrl ? (
-                <Image src={logoUrl} alt="Logo" width={80} height={80} className="object-cover" />
+                <Image
+                  src={logoUrl}
+                  alt="Logo"
+                  width={80}
+                  height={80}
+                  className="object-cover"
+                />
               ) : (
                 <span className="text-2xl font-bold text-primary">
                   {sacco?.name?.slice(0, 1) ?? "S"}
@@ -76,8 +92,10 @@ export function GeneralTab({ sacco }: { sacco: any }) {
             </div>
             <div
               {...getRootProps()}
-              className={`flex-1 border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
-                isDragActive ? "border-primary bg-primary/5" : "border-muted-foreground/30 hover:border-primary"
+              className={`flex-1 cursor-pointer rounded-lg border-2 border-dashed p-6 text-center transition-colors ${
+                isDragActive
+                  ? "border-primary bg-primary/5"
+                  : "border-muted-foreground/30 hover:border-primary"
               }`}
             >
               <input {...getInputProps()} />
@@ -88,11 +106,13 @@ export function GeneralTab({ sacco }: { sacco: any }) {
                 </div>
               ) : (
                 <>
-                  <Upload className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
+                  <Upload className="mx-auto mb-2 h-6 w-6 text-muted-foreground" />
                   <p className="text-sm text-muted-foreground">
                     Drag & drop or click to upload
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">PNG, JPG up to 2MB</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    PNG, JPG up to 2MB
+                  </p>
                 </>
               )}
             </div>
@@ -107,7 +127,7 @@ export function GeneralTab({ sacco }: { sacco: any }) {
           <CardDescription>Basic details about your SACCO</CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={formAction} className="space-y-4">
+          <form action={formAction} className="space-y-4" key={sacco?.id}>
             <div className="space-y-1.5">
               <Label htmlFor="name">SACCO Name *</Label>
               <Input
@@ -159,7 +179,7 @@ export function GeneralTab({ sacco }: { sacco: any }) {
                   type="color"
                   value={color}
                   onChange={(e) => setColor(e.target.value)}
-                  className="h-10 w-14 rounded-md border border-input cursor-pointer"
+                  className="h-10 w-14 cursor-pointer rounded-md border border-input"
                 />
                 <Input
                   id="primary_color"
@@ -170,18 +190,19 @@ export function GeneralTab({ sacco }: { sacco: any }) {
                   className="flex-1 font-mono"
                 />
                 <div
-                  className="h-10 w-10 rounded-md border border-input shrink-0"
+                  className="h-10 w-10 shrink-0 rounded-md border border-input"
                   style={{ backgroundColor: color }}
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                This color is used for buttons, badges, and accents throughout the app.
+                This color is used for buttons, badges, and accents throughout
+                the app.
               </p>
             </div>
 
             <div className="flex justify-end pt-2">
               <Button type="submit" disabled={isPending}>
-                {isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Save Settings
               </Button>
             </div>

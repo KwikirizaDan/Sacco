@@ -8,13 +8,6 @@ import { FileText, Loader2 } from "lucide-react"
 import { LoanContractDocument } from "@/lib/pdf/loan-contract"
 import { toast } from "sonner"
 
-const SACCO = {
-  name: "My SACCO",
-  address: "Kampala, Uganda",
-  phone: "+256 700 000 000",
-  email: "info@sacco.ug",
-}
-
 export function LoanPdfButton({ loan }: { loan: any }) {
   const [loading, setLoading] = useState(false)
 
@@ -22,6 +15,21 @@ export function LoanPdfButton({ loan }: { loan: any }) {
     e.preventDefault()
     setLoading(true)
     try {
+      // Fetch SACCO data
+      const saccoResponse = await fetch("/api/settings")
+      let sacco
+      if (saccoResponse.ok) {
+        sacco = await saccoResponse.json()
+      } else {
+        // Fallback to basic SACCO info
+        sacco = {
+          name: "SACCO",
+          address: "Address not available",
+          contact_phone: "Phone not available",
+          contact_email: "Email not available",
+        }
+      }
+
       const doc = (
         <LoanContractDocument
           loan={loan}
@@ -32,7 +40,7 @@ export function LoanPdfButton({ loan }: { loan: any }) {
             national_id: loan.member_national_id,
             address: loan.member_address,
           }}
-          sacco={SACCO}
+          sacco={sacco}
         />
       )
       const blob = await pdf(doc).toBlob()

@@ -44,8 +44,7 @@ export function AddFineDialog({
     if (state.error) toast.error(state.error)
   }, [state, onClose])
 
-  const fieldError = (field: string) =>
-    (state as any).fieldErrors?.[field]?.[0]
+  const fieldError = (field: string) => (state as any).fieldErrors?.[field]?.[0]
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -64,7 +63,7 @@ export function AddFineDialog({
           {/* Member */}
           <div className="space-y-1.5">
             <Label>Member *</Label>
-            <Select name="member_id">
+            <Select name="member_id" required>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select member" />
               </SelectTrigger>
@@ -77,7 +76,9 @@ export function AddFineDialog({
               </SelectContent>
             </Select>
             {fieldError("member_id") && (
-              <p className="text-sm text-destructive">{fieldError("member_id")}</p>
+              <p className="text-sm text-destructive">
+                {fieldError("member_id")}
+              </p>
             )}
           </div>
 
@@ -109,7 +110,9 @@ export function AddFineDialog({
               <Label>Amount (UGX) *</Label>
               <Input name="amount" type="number" placeholder="e.g. 50000" />
               {fieldError("amount") && (
-                <p className="text-sm text-destructive">{fieldError("amount")}</p>
+                <p className="text-sm text-destructive">
+                  {fieldError("amount")}
+                </p>
               )}
             </div>
             <div className="space-y-1.5">
@@ -143,7 +146,7 @@ export function AddFineDialog({
             <textarea
               name="description"
               rows={2}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
               placeholder="Detailed description (optional)"
             />
           </div>
@@ -164,16 +167,16 @@ export function AddFineDialog({
             </div>
           </div>
 
-          <div className="flex gap-2 justify-end pt-2">
+          <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={isPending}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="bg-red-600 text-white hover:bg-red-700"
             >
-              {isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Issue Fine
             </Button>
           </div>

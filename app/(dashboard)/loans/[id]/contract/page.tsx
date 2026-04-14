@@ -5,17 +5,19 @@ import Link from "next/link"
 import { useParams } from "next/navigation"
 import { pdf, PDFViewer } from "@react-pdf/renderer"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Download, Loader2, FileText, User, Hash, Calendar, Banknote } from "lucide-react"
+import {
+  ArrowLeft,
+  Download,
+  Loader2,
+  FileText,
+  User,
+  Hash,
+  Calendar,
+  Banknote,
+} from "lucide-react"
 import { toast } from "sonner"
 import { LoanContractDocument } from "@/lib/pdf/loan-contract"
 import { formatUGX, formatDate } from "@/lib/utils/format"
-
-const SACCO = {
-  name: "My SACCO",
-  address: "Kampala, Uganda",
-  phone: "+256 700 000 000",
-  email: "info@sacco.ug",
-}
 
 interface Loan {
   id: string
@@ -42,12 +44,12 @@ interface Loan {
 }
 
 const statusMeta: Record<string, { color: string; bg: string }> = {
-  pending:   { color: "#f59e0b", bg: "#f59e0b15" },
-  approved:  { color: "#3b82f6", bg: "#3b82f615" },
-  active:    { color: "#10b981", bg: "#10b98115" },
+  pending: { color: "#f59e0b", bg: "#f59e0b15" },
+  approved: { color: "#3b82f6", bg: "#3b82f615" },
+  active: { color: "#10b981", bg: "#10b98115" },
   disbursed: { color: "#8b5cf6", bg: "#8b5cf615" },
-  settled:   { color: "#6b7280", bg: "#6b728015" },
-  declined:  { color: "#ef4444", bg: "#ef444415" },
+  settled: { color: "#6b7280", bg: "#6b728015" },
+  declined: { color: "#ef4444", bg: "#ef444415" },
   defaulted: { color: "#dc2626", bg: "#dc262615" },
 }
 
@@ -55,23 +57,40 @@ export default function LoanContractPage() {
   const params = useParams()
   const loanId = params.id as string
   const [loan, setLoan] = useState<Loan | null>(null)
+  const [sacco, setSacco] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [downloading, setDownloading] = useState(false)
 
   useEffect(() => {
-    async function fetchLoan() {
+    async function fetchData() {
       try {
-        const response = await fetch(`/api/loans/${loanId}`)
-        if (!response.ok) throw new Error("Failed to fetch loan")
-        const data = await response.json()
-        setLoan(data)
+        // Fetch loan data
+        const loanResponse = await fetch(`/api/loans/${loanId}`)
+        if (!loanResponse.ok) throw new Error("Failed to fetch loan")
+        const loanData = await loanResponse.json()
+        setLoan(loanData)
+
+        // Fetch SACCO data (assuming we can get it from settings API)
+        const saccoResponse = await fetch("/api/settings")
+        if (saccoResponse.ok) {
+          const saccoData = await saccoResponse.json()
+          setSacco(saccoData)
+        } else {
+          // Fallback to basic SACCO info
+          setSacco({
+            name: "SACCO",
+            address: "Address not available",
+            phone: "Phone not available",
+            email: "Email not available",
+          })
+        }
       } catch {
-        toast.error("Failed to load loan data")
+        toast.error("Failed to load data")
       } finally {
         setLoading(false)
       }
     }
-    fetchLoan()
+    fetchData()
   }, [loanId])
 
   const handleDownload = async () => {
@@ -88,7 +107,7 @@ export default function LoanContractPage() {
             national_id: loan.member_national_id,
             address: loan.member_address,
           }}
-          sacco={SACCO}
+          sacco={sacco}
         />
       )
       const blob = await pdf(doc).toBlob()
@@ -109,7 +128,7 @@ export default function LoanContractPage() {
   // ── Loading ──────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-72 gap-3 text-muted-foreground">
+      <div className="flex h-72 flex-col items-center justify-center gap-3 text-muted-foreground">
         <Loader2 className="h-7 w-7 animate-spin" />
         <p className="text-sm">Loading contract…</p>
       </div>
@@ -119,16 +138,16 @@ export default function LoanContractPage() {
   // ── Not found ────────────────────────────────────────────────────────────
   if (!loan) {
     return (
-      <div className="max-w-3xl mx-auto space-y-4 pt-6">
+      <div className="mx-auto max-w-3xl space-y-4 pt-6">
         <Link
           href="/loans"
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Loans
         </Link>
-        <div className="bg-card border border-border rounded-2xl p-12 text-center text-muted-foreground shadow-sm">
-          <FileText className="h-10 w-10 mx-auto mb-3 opacity-20" />
+        <div className="rounded-2xl border border-border bg-card p-12 text-center text-muted-foreground shadow-sm">
+          <FileText className="mx-auto mb-3 h-10 w-10 opacity-20" />
           <p className="text-sm font-medium">Loan not found</p>
         </div>
       </div>
@@ -147,18 +166,17 @@ export default function LoanContractPage() {
         national_id: loan.member_national_id,
         address: loan.member_address,
       }}
-      sacco={SACCO}
+      sacco={sacco}
     />
   )
 
   return (
-    <div className="max-w-5xl mx-auto space-y-4">
-
+    <div className="mx-auto max-w-5xl space-y-4">
       {/* ── Page header ── */}
       <div className="flex items-center justify-between">
         <Link
           href="/loans"
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Loans
@@ -167,7 +185,7 @@ export default function LoanContractPage() {
         <Button
           onClick={handleDownload}
           disabled={downloading}
-          className="h-9 px-5 rounded-xl text-sm font-medium gap-2 shadow-sm"
+          className="h-9 gap-2 rounded-xl px-5 text-sm font-medium shadow-sm"
         >
           {downloading ? (
             <>
@@ -184,24 +202,24 @@ export default function LoanContractPage() {
       </div>
 
       {/* ── Contract meta card ── */}
-      <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
         {/* Top accent bar */}
         <div className="h-[3px] w-full" style={{ background: sm.color }} />
 
-        <div className="px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col gap-4 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
           {/* Left: icon + title */}
           <div className="flex items-center gap-4">
             <div
-              className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
               style={{ background: sm.bg }}
             >
               <FileText className="h-5 w-5" style={{ color: sm.color }} />
             </div>
             <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-0.5">
+              <p className="mb-0.5 text-xs font-medium tracking-widest text-muted-foreground uppercase">
                 Loan Contract
               </p>
-              <h1 className="text-lg font-bold text-foreground font-mono tracking-tight">
+              <h1 className="font-mono text-lg font-bold tracking-tight text-foreground">
                 {loan.loan_ref}
               </h1>
             </div>
@@ -211,26 +229,30 @@ export default function LoanContractPage() {
           <div className="flex flex-wrap items-center gap-2">
             {/* Status badge */}
             <span
-              className="inline-flex items-center text-[11px] font-semibold px-2.5 py-1 rounded-full capitalize border"
-              style={{ color: sm.color, background: sm.bg, borderColor: `${sm.color}30` }}
+              className="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold capitalize"
+              style={{
+                color: sm.color,
+                background: sm.bg,
+                borderColor: `${sm.color}30`,
+              }}
             >
               {loan.status}
             </span>
 
             {loan.member_name && (
-              <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
                 <User className="h-3 w-3" />
                 {loan.member_name}
               </span>
             )}
 
-            <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
               <Banknote className="h-3 w-3" />
               {formatUGX(loan.amount)}
             </span>
 
             {loan.due_date && (
-              <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
                 <Calendar className="h-3 w-3" />
                 Due {formatDate(loan.due_date)}
               </span>
@@ -240,16 +262,13 @@ export default function LoanContractPage() {
       </div>
 
       {/* ── PDF Viewer ── */}
-      <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
-        <div
-          className="h-[calc(100vh-300px)] min-h-[520px]"
-        >
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <div className="h-[calc(100vh-300px)] min-h-[520px]">
           <PDFViewer width="100%" height="100%" showToolbar={false}>
             {doc}
           </PDFViewer>
         </div>
       </div>
-
     </div>
   )
 }

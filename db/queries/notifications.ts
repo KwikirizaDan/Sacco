@@ -1,6 +1,6 @@
 import { db } from "@/db"
 import { notifications, members } from "@/db/schema"
-import { eq, desc, count, isNull } from "drizzle-orm"
+import { eq, desc, count, isNull, and, or } from "drizzle-orm"
 
 export async function getAllNotifications(saccoId: string) {
   return await db
@@ -27,7 +27,12 @@ export async function getAllNotifications(saccoId: string) {
     })
     .from(notifications)
     .leftJoin(members, eq(notifications.member_id, members.id))
-    .where(eq(notifications.sacco_id, saccoId))
+    .where(
+      and(
+        eq(notifications.sacco_id, saccoId),
+        or(isNull(notifications.member_id), eq(members.sacco_id, saccoId))
+      )
+    )
     .orderBy(desc(notifications.created_at))
     .limit(100)
 }
@@ -56,7 +61,12 @@ export async function getLatestNotifications(saccoId: string, limit = 5) {
     })
     .from(notifications)
     .leftJoin(members, eq(notifications.member_id, members.id))
-    .where(eq(notifications.sacco_id, saccoId))
+    .where(
+      and(
+        eq(notifications.sacco_id, saccoId),
+        or(isNull(notifications.member_id), eq(members.sacco_id, saccoId))
+      )
+    )
     .orderBy(desc(notifications.created_at))
     .limit(limit)
 }

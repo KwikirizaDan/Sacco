@@ -5,18 +5,12 @@ import {
   getSavingsCategories,
   getFineCategories,
 } from "@/db/queries/settings"
-import { getCurrentUser } from "@/lib/auth"
+import { requireAuth } from "@/lib/auth"
 import { SettingsClient } from "./components/settings-client"
 
 export default async function SettingsPage() {
-  const user = await getCurrentUser()
-  if (!user) {
-    // Handle unauthenticated user - redirect to login
-    const { redirect } = await import("next/navigation")
-    redirect("/auth/login")
-  }
+  const user = await requireAuth()
 
-  const { saccoId } = user!
   const [
     sacco,
     interestRates,
@@ -24,11 +18,11 @@ export default async function SettingsPage() {
     savingsCategories,
     fineCategories,
   ] = await Promise.all([
-    getSaccoSettings(saccoId),
-    getInterestRates(saccoId),
-    getLoanCategories(saccoId),
-    getSavingsCategories(saccoId),
-    getFineCategories(saccoId),
+    getSaccoSettings(user.saccoId),
+    getInterestRates(user.saccoId),
+    getLoanCategories(user.saccoId),
+    getSavingsCategories(user.saccoId),
+    getFineCategories(user.saccoId),
   ])
 
   return (

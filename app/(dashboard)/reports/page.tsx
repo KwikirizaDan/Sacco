@@ -14,6 +14,7 @@ import {
   fineCategories,
 } from "@/db/schema"
 import { eq, sum, count, desc, and, gte, lte, sql } from "drizzle-orm"
+import { getSaccoSettings } from "@/db/queries/settings"
 import { ReportsClient } from "./components/reports-client"
 
 export default async function ReportsPage() {
@@ -405,8 +406,12 @@ export default async function ReportsPage() {
     .from(fineCategories)
     .where(eq(fineCategories.sacco_id, user.saccoId))
 
+  // SACCO settings
+  const sacco = await getSaccoSettings(user.saccoId)
+
   return (
     <ReportsClient
+      sacco={sacco}
       stats={{
         // Loans
         totalLoansAmount: Number(loanStats?.total ?? 0),
