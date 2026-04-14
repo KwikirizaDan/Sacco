@@ -1,10 +1,4 @@
-import {
-  Document,
-  Page,
-  View,
-  Text,
-  StyleSheet,
-} from "@react-pdf/renderer"
+import { Document, Page, View, Text, StyleSheet } from "@react-pdf/renderer"
 import { SaccoHeader } from "./sacco-header"
 
 const styles = StyleSheet.create({
@@ -161,7 +155,14 @@ interface ReportDocumentProps {
   transactions?: any[]
   complaints?: any[]
   notifications?: any[]
-  sacco?: { name: string; address?: string; phone?: string; email?: string }
+  sacco?: {
+    name: string
+    address?: string
+    phone?: string
+    email?: string
+    logoUrl?: string
+    tagline?: string
+  }
   dateRange?: string
 }
 
@@ -175,7 +176,12 @@ export function ReportDocument({
   transactions = [],
   complaints = [],
   notifications = [],
-  sacco = { name: "My SACCO", address: "Kampala, Uganda", phone: "+256 700 000 000", email: "info@sacco.ug" },
+  sacco = {
+    name: "My SACCO",
+    address: "Kampala, Uganda",
+    phone: "+256 700 000 000",
+    email: "info@sacco.ug",
+  },
   dateRange,
 }: ReportDocumentProps) {
   const titles: Record<string, string> = {
@@ -195,6 +201,8 @@ export function ReportDocument({
           address={sacco.address}
           phone={sacco.phone}
           email={sacco.email}
+          logoUrl={sacco.logoUrl}
+          tagline={sacco.tagline}
         />
 
         <Text style={styles.title}>{titles[type]}</Text>
@@ -213,15 +221,21 @@ export function ReportDocument({
               </View>
               <View style={styles.kpiBox}>
                 <Text style={styles.kpiLabel}>Total Loans</Text>
-                <Text style={styles.kpiValue}>{formatUGX(stats.totalLoansAmount)}</Text>
+                <Text style={styles.kpiValue}>
+                  {formatUGX(stats.totalLoansAmount)}
+                </Text>
               </View>
               <View style={styles.kpiBox}>
                 <Text style={styles.kpiLabel}>Total Savings</Text>
-                <Text style={styles.kpiValue}>{formatUGX(stats.totalSavings)}</Text>
+                <Text style={styles.kpiValue}>
+                  {formatUGX(stats.totalSavings)}
+                </Text>
               </View>
               <View style={styles.kpiBox}>
                 <Text style={styles.kpiLabel}>Pending Fines</Text>
-                <Text style={styles.kpiValue}>{formatUGX(stats.pendingFines)}</Text>
+                <Text style={styles.kpiValue}>
+                  {formatUGX(stats.pendingFines)}
+                </Text>
               </View>
             </View>
 
@@ -232,11 +246,15 @@ export function ReportDocument({
               </View>
               <View style={styles.summaryBox}>
                 <Text style={styles.summaryLabel}>Active Loans</Text>
-                <Text style={styles.summaryValue}>{stats.activeLoansCount}</Text>
+                <Text style={styles.summaryValue}>
+                  {stats.activeLoansCount}
+                </Text>
               </View>
               <View style={styles.summaryBox}>
                 <Text style={styles.summaryLabel}>Settled Loans</Text>
-                <Text style={styles.summaryValue}>{stats.settledLoansCount}</Text>
+                <Text style={styles.summaryValue}>
+                  {stats.settledLoansCount}
+                </Text>
               </View>
               <View style={styles.summaryBox}>
                 <Text style={styles.summaryLabel}>Savings Accounts</Text>
@@ -254,12 +272,17 @@ export function ReportDocument({
                 <Text style={styles.tableHeaderText}>Date</Text>
               </View>
               {loans.slice(0, 10).map((l, i) => (
-                <View key={l.id} style={i % 2 === 0 ? styles.tableRow : styles.tableRowAlt}>
+                <View
+                  key={l.id}
+                  style={i % 2 === 0 ? styles.tableRow : styles.tableRowAlt}
+                >
                   <Text style={styles.tableCell}>{l.loan_ref}</Text>
                   <Text style={styles.tableCell}>{l.member_name ?? "—"}</Text>
                   <Text style={styles.tableCell}>{formatUGX(l.amount)}</Text>
                   <Text style={styles.tableCell}>{l.status}</Text>
-                  <Text style={styles.tableCell}>{formatDate(l.created_at)}</Text>
+                  <Text style={styles.tableCell}>
+                    {formatDate(l.created_at)}
+                  </Text>
                 </View>
               ))}
             </View>
@@ -273,11 +296,16 @@ export function ReportDocument({
                 <Text style={styles.tableHeaderText}>Status</Text>
               </View>
               {savings.slice(0, 10).map((s, i) => (
-                <View key={s.id} style={i % 2 === 0 ? styles.tableRow : styles.tableRowAlt}>
+                <View
+                  key={s.id}
+                  style={i % 2 === 0 ? styles.tableRow : styles.tableRowAlt}
+                >
                   <Text style={styles.tableCell}>{s.member_name ?? "—"}</Text>
                   <Text style={styles.tableCell}>{s.account_number}</Text>
                   <Text style={styles.tableCell}>{formatUGX(s.balance)}</Text>
-                  <Text style={styles.tableCell}>{s.is_locked ? "Locked" : "Active"}</Text>
+                  <Text style={styles.tableCell}>
+                    {s.is_locked ? "Locked" : "Active"}
+                  </Text>
                 </View>
               ))}
             </View>
@@ -290,11 +318,15 @@ export function ReportDocument({
             <View style={styles.kpiRow}>
               <View style={styles.kpiBox}>
                 <Text style={styles.kpiLabel}>Total Disbursed</Text>
-                <Text style={styles.kpiValue}>{formatUGX(stats.totalLoansAmount)}</Text>
+                <Text style={styles.kpiValue}>
+                  {formatUGX(stats.totalLoansAmount)}
+                </Text>
               </View>
               <View style={styles.kpiBox}>
                 <Text style={styles.kpiLabel}>Outstanding</Text>
-                <Text style={styles.kpiValue}>{formatUGX(stats.activeLoansAmount)}</Text>
+                <Text style={styles.kpiValue}>
+                  {formatUGX(stats.activeLoansAmount)}
+                </Text>
               </View>
               <View style={styles.kpiBox}>
                 <Text style={styles.kpiLabel}>Active</Text>
@@ -317,12 +349,17 @@ export function ReportDocument({
                 <Text style={styles.tableHeaderText}>Due</Text>
               </View>
               {loans.map((l, i) => (
-                <View key={l.id} style={i % 2 === 0 ? styles.tableRow : styles.tableRowAlt}>
+                <View
+                  key={l.id}
+                  style={i % 2 === 0 ? styles.tableRow : styles.tableRowAlt}
+                >
                   <Text style={styles.tableCell}>{l.loan_ref}</Text>
                   <Text style={styles.tableCell}>{l.member_name ?? "—"}</Text>
                   <Text style={styles.tableCell}>{formatUGX(l.amount)}</Text>
                   <Text style={styles.tableCell}>{formatUGX(l.balance)}</Text>
-                  <Text style={styles.tableCell}>{formatUGX(l.monthly_payment ?? 0)}</Text>
+                  <Text style={styles.tableCell}>
+                    {formatUGX(l.monthly_payment ?? 0)}
+                  </Text>
                   <Text style={styles.tableCell}>{l.status}</Text>
                   <Text style={styles.tableCell}>{formatDate(l.due_date)}</Text>
                 </View>
@@ -337,7 +374,9 @@ export function ReportDocument({
             <View style={styles.kpiRow}>
               <View style={styles.kpiBox}>
                 <Text style={styles.kpiLabel}>Total Savings</Text>
-                <Text style={styles.kpiValue}>{formatUGX(stats.totalSavings)}</Text>
+                <Text style={styles.kpiValue}>
+                  {formatUGX(stats.totalSavings)}
+                </Text>
               </View>
               <View style={styles.kpiBox}>
                 <Text style={styles.kpiLabel}>Accounts</Text>
@@ -346,7 +385,11 @@ export function ReportDocument({
               <View style={styles.kpiBox}>
                 <Text style={styles.kpiLabel}>Avg Balance</Text>
                 <Text style={styles.kpiValue}>
-                  {formatUGX(stats.savingsCount > 0 ? Math.floor(stats.totalSavings / stats.savingsCount) : 0)}
+                  {formatUGX(
+                    stats.savingsCount > 0
+                      ? Math.floor(stats.totalSavings / stats.savingsCount)
+                      : 0
+                  )}
                 </Text>
               </View>
             </View>
@@ -361,13 +404,20 @@ export function ReportDocument({
                 <Text style={styles.tableHeaderText}>Opened</Text>
               </View>
               {savings.map((s, i) => (
-                <View key={s.id} style={i % 2 === 0 ? styles.tableRow : styles.tableRowAlt}>
+                <View
+                  key={s.id}
+                  style={i % 2 === 0 ? styles.tableRow : styles.tableRowAlt}
+                >
                   <Text style={styles.tableCell}>{s.member_name ?? "—"}</Text>
                   <Text style={styles.tableCell}>{s.member_code ?? "—"}</Text>
                   <Text style={styles.tableCell}>{s.account_number}</Text>
                   <Text style={styles.tableCell}>{formatUGX(s.balance)}</Text>
-                  <Text style={styles.tableCell}>{s.is_locked ? "Locked" : "Active"}</Text>
-                  <Text style={styles.tableCell}>{formatDate(s.created_at)}</Text>
+                  <Text style={styles.tableCell}>
+                    {s.is_locked ? "Locked" : "Active"}
+                  </Text>
+                  <Text style={styles.tableCell}>
+                    {formatDate(s.created_at)}
+                  </Text>
                 </View>
               ))}
             </View>
@@ -388,7 +438,9 @@ export function ReportDocument({
               </View>
               <View style={styles.kpiBox}>
                 <Text style={styles.kpiLabel}>Suspended</Text>
-                <Text style={styles.kpiValue}>{stats.totalMembers - stats.activeMembers}</Text>
+                <Text style={styles.kpiValue}>
+                  {stats.totalMembers - stats.activeMembers}
+                </Text>
               </View>
             </View>
             <View style={styles.section}>
@@ -402,13 +454,18 @@ export function ReportDocument({
                 <Text style={styles.tableHeaderText}>Joined</Text>
               </View>
               {members.map((m, i) => (
-                <View key={m.id} style={i % 2 === 0 ? styles.tableRow : styles.tableRowAlt}>
+                <View
+                  key={m.id}
+                  style={i % 2 === 0 ? styles.tableRow : styles.tableRowAlt}
+                >
                   <Text style={styles.tableCell}>{m.member_code}</Text>
                   <Text style={styles.tableCell}>{m.full_name}</Text>
                   <Text style={styles.tableCell}>{m.phone ?? "—"}</Text>
                   <Text style={styles.tableCell}>{m.national_id ?? "—"}</Text>
                   <Text style={styles.tableCell}>{m.status}</Text>
-                  <Text style={styles.tableCell}>{formatDate(m.joined_at)}</Text>
+                  <Text style={styles.tableCell}>
+                    {formatDate(m.joined_at)}
+                  </Text>
                 </View>
               ))}
             </View>
@@ -421,11 +478,15 @@ export function ReportDocument({
             <View style={styles.kpiRow}>
               <View style={styles.kpiBox}>
                 <Text style={styles.kpiLabel}>Total Fines</Text>
-                <Text style={styles.kpiValue}>{formatUGX(stats.totalFines)}</Text>
+                <Text style={styles.kpiValue}>
+                  {formatUGX(stats.totalFines)}
+                </Text>
               </View>
               <View style={styles.kpiBox}>
                 <Text style={styles.kpiLabel}>Pending</Text>
-                <Text style={styles.kpiValue}>{formatUGX(stats.pendingFines)}</Text>
+                <Text style={styles.kpiValue}>
+                  {formatUGX(stats.pendingFines)}
+                </Text>
               </View>
               <View style={styles.kpiBox}>
                 <Text style={styles.kpiLabel}>Total Count</Text>
@@ -443,13 +504,18 @@ export function ReportDocument({
                 <Text style={styles.tableHeaderText}>Date</Text>
               </View>
               {fines.map((f, i) => (
-                <View key={f.id} style={i % 2 === 0 ? styles.tableRow : styles.tableRowAlt}>
+                <View
+                  key={f.id}
+                  style={i % 2 === 0 ? styles.tableRow : styles.tableRowAlt}
+                >
                   <Text style={styles.tableCell}>{f.member_name ?? "—"}</Text>
                   <Text style={styles.tableCell}>{f.member_code ?? "—"}</Text>
                   <Text style={styles.tableCell}>{formatUGX(f.amount)}</Text>
                   <Text style={styles.tableCell}>{f.reason ?? "—"}</Text>
                   <Text style={styles.tableCell}>{f.status}</Text>
-                  <Text style={styles.tableCell}>{formatDate(f.created_at)}</Text>
+                  <Text style={styles.tableCell}>
+                    {formatDate(f.created_at)}
+                  </Text>
                 </View>
               ))}
             </View>
@@ -469,9 +535,14 @@ export function ReportDocument({
               <Text style={styles.tableHeaderText}>Date</Text>
             </View>
             {transactions.map((t, i) => (
-              <View key={t.id} style={i % 2 === 0 ? styles.tableRow : styles.tableRowAlt}>
+              <View
+                key={t.id}
+                style={i % 2 === 0 ? styles.tableRow : styles.tableRowAlt}
+              >
                 <Text style={styles.tableCell}>{t.member_name ?? "—"}</Text>
-                <Text style={styles.tableCell}>{t.type?.replace(/_/g, " ")}</Text>
+                <Text style={styles.tableCell}>
+                  {t.type?.replace(/_/g, " ")}
+                </Text>
                 <Text style={styles.tableCell}>{formatUGX(t.amount)}</Text>
                 <Text style={styles.tableCell}>{t.payment_method ?? "—"}</Text>
                 <Text style={styles.tableCell}>{t.narration ?? "—"}</Text>
@@ -482,9 +553,13 @@ export function ReportDocument({
         )}
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>{sacco.name} · {titles[type]}</Text>
+          <Text style={styles.footerText}>
+            {sacco.name} · {titles[type]}
+          </Text>
           <Text style={styles.footerText}>Confidential</Text>
-          <Text style={styles.footerText}>Generated: {new Date().toLocaleDateString()}</Text>
+          <Text style={styles.footerText}>
+            Generated: {new Date().toLocaleDateString()}
+          </Text>
         </View>
       </Page>
     </Document>

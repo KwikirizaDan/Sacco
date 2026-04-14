@@ -1,11 +1,6 @@
 // lib/pdf/loan-contract.tsx
-import {
-  Document,
-  Page,
-  View,
-  Text,
-  StyleSheet,
-} from "@react-pdf/renderer"
+import { Document, Page, View, Text, StyleSheet } from "@react-pdf/renderer"
+import { SaccoHeader } from "./sacco-header"
 
 const styles = StyleSheet.create({
   page: {
@@ -194,6 +189,7 @@ interface LoanContractProps {
     phone?: string
     email?: string
     logoUrl?: string
+    tagline?: string
   }
 }
 
@@ -201,7 +197,11 @@ function formatUGX(cents: number) {
   return `UGX ${(cents / 100).toLocaleString()}`
 }
 
-export function LoanContractDocument({ loan, member, sacco }: LoanContractProps) {
+export function LoanContractDocument({
+  loan,
+  member,
+  sacco,
+}: LoanContractProps) {
   const schedule = []
   const months = loan.duration_months ?? 12
   const startDate = loan.created_at ? new Date(loan.created_at) : new Date()
@@ -213,13 +213,25 @@ export function LoanContractDocument({ loan, member, sacco }: LoanContractProps)
       num: i,
       date: date.toLocaleDateString(),
       payment: loan.monthly_payment ?? 0,
-      balance: Math.max(0, loan.expected_received - (loan.monthly_payment ?? 0) * i),
+      balance: Math.max(
+        0,
+        loan.expected_received - (loan.monthly_payment ?? 0) * i
+      ),
     })
   }
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
+        <SaccoHeader
+          name={sacco.name}
+          address={sacco.address}
+          phone={sacco.phone}
+          email={sacco.email}
+          logoUrl={sacco.logoUrl}
+          tagline={sacco.tagline}
+        />
+
         <Text style={styles.title}>LOAN AGREEMENT CONTRACT</Text>
         <Text style={styles.subtitle}>
           Ref: {loan.loan_ref} · Generated: {new Date().toLocaleDateString()}
@@ -260,7 +272,9 @@ export function LoanContractDocument({ loan, member, sacco }: LoanContractProps)
           <View style={styles.highlightBox}>
             <View style={styles.highlightRow}>
               <Text style={styles.highlightLabel}>Principal Amount</Text>
-              <Text style={styles.highlightValue}>{formatUGX(loan.amount)}</Text>
+              <Text style={styles.highlightValue}>
+                {formatUGX(loan.amount)}
+              </Text>
             </View>
             <View style={styles.highlightRow}>
               <Text style={styles.highlightLabel}>
@@ -348,10 +362,11 @@ export function LoanContractDocument({ loan, member, sacco }: LoanContractProps)
             <Text style={styles.declarationText}>
               I, the borrower, acknowledge that I have received and understood
               the terms of this loan agreement. I agree to repay the total
-              amount of {formatUGX(loan.expected_received)} as per the schedule above. 
-              I understand that late payments may attract a penalty fee of {formatUGX(loan.late_penalty_fee ?? 0)}. 
-              I authorize {sacco.name} to deduct repayments from my savings account in case of default. 
-              This agreement is binding upon signing.
+              amount of {formatUGX(loan.expected_received)} as per the schedule
+              above. I understand that late payments may attract a penalty fee
+              of {formatUGX(loan.late_penalty_fee ?? 0)}. I authorize{" "}
+              {sacco.name} to deduct repayments from my savings account in case
+              of default. This agreement is binding upon signing.
             </Text>
           </View>
         </View>
@@ -383,9 +398,7 @@ export function LoanContractDocument({ loan, member, sacco }: LoanContractProps)
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            {sacco.name} · Loan Contract
-          </Text>
+          <Text style={styles.footerText}>{sacco.name} · Loan Contract</Text>
           <Text style={styles.footerText}>{loan.loan_ref}</Text>
           <Text style={styles.footerText}>
             Generated: {new Date().toLocaleDateString()}

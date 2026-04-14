@@ -1,10 +1,4 @@
-import {
-  Document,
-  Page,
-  View,
-  Text,
-  StyleSheet,
-} from "@react-pdf/renderer"
+import { Document, Page, View, Text, StyleSheet } from "@react-pdf/renderer"
 import { SaccoHeader } from "./sacco-header"
 
 const styles = StyleSheet.create({
@@ -187,16 +181,11 @@ interface ApplicationFormProps {
     phone?: string
     email?: string
     logoUrl?: string
+    tagline?: string
   }
 }
 
-function Field({
-  label,
-  value,
-}: {
-  label: string
-  value?: string | null
-}) {
+function Field({ label, value }: { label: string; value?: string | null }) {
   return (
     <View style={styles.field}>
       <Text style={styles.fieldLabel}>{label}</Text>
@@ -216,7 +205,6 @@ export function ApplicationFormDocument({
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-
         {/* SACCO Header */}
         <SaccoHeader
           name={sacco.name}
@@ -224,6 +212,7 @@ export function ApplicationFormDocument({
           phone={sacco.phone}
           email={sacco.email}
           logoUrl={sacco.logoUrl}
+          tagline={sacco.tagline}
         />
 
         {/* Title */}
@@ -254,7 +243,9 @@ export function ApplicationFormDocument({
             </View>
             {/* Photo Box */}
             <View style={styles.photoBox}>
-              <Text style={styles.photoLabel}>Passport{"\n"}Photo{"\n"}Here</Text>
+              <Text style={styles.photoLabel}>
+                Passport{"\n"}Photo{"\n"}Here
+              </Text>
             </View>
           </View>
         </View>
@@ -296,15 +287,16 @@ export function ApplicationFormDocument({
             <Text style={styles.declarationText}>
               I, the undersigned, hereby declare that the information provided
               in this form is true, complete, and accurate to the best of my
-              knowledge. I agree to abide by the rules, regulations, and
-              by-laws of {sacco.name}. I understand that providing false
-              information may result in termination of my membership.
+              knowledge. I agree to abide by the rules, regulations, and by-laws
+              of {sacco.name}. I understand that providing false information may
+              result in termination of my membership.
             </Text>
           </View>
           <View style={styles.confirmBox}>
             <View style={styles.checkbox} />
             <Text style={styles.confirmText}>
-              I confirm that I have read and understood the SACCO terms and conditions.
+              I confirm that I have read and understood the SACCO terms and
+              conditions.
             </Text>
           </View>
           <View style={styles.confirmBox}>
@@ -359,7 +351,9 @@ export function ApplicationFormDocument({
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>{sacco.name} · Membership Application</Text>
+          <Text style={styles.footerText}>
+            {sacco.name} · Membership Application
+          </Text>
           <Text style={styles.footerText}>{member.member_code}</Text>
           <Text style={styles.footerText}>
             Generated: {new Date().toLocaleDateString()}

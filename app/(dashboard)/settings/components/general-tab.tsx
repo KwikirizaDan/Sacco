@@ -170,6 +170,19 @@ export function GeneralTab({ sacco }: { sacco: any }) {
               />
             </div>
 
+            <div className="space-y-1.5">
+              <Label htmlFor="tagline">Tagline</Label>
+              <Input
+                id="tagline"
+                name="tagline"
+                defaultValue={sacco?.tagline ?? ""}
+                placeholder="e.g. Save · Grow · Thrive"
+              />
+              <p className="text-xs text-muted-foreground">
+                This tagline appears on PDF headers and official documents.
+              </p>
+            </div>
+
             <Separator />
 
             <div className="space-y-1.5">

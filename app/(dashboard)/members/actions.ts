@@ -44,6 +44,14 @@ const memberSchema = z.object({
     .string()
     .optional()
     .transform((v) => (v === "" ? undefined : v)),
+  next_of_kin_relationship: z
+    .string()
+    .optional()
+    .transform((v) => (v === "" ? undefined : v)),
+  next_of_kin_address: z
+    .string()
+    .optional()
+    .transform((v) => (v === "" ? undefined : v)),
   status: z.enum(["active", "suspended", "exited"]).default("active"),
   photo_url: z
     .string()
@@ -104,7 +112,9 @@ export async function addMemberAction(
       date_of_birth: parsed.data.date_of_birth || null,
       address: parsed.data.address || null,
       next_of_kin: parsed.data.next_of_kin || null,
+      next_of_kin_relationship: parsed.data.next_of_kin_relationship || null,
       next_of_kin_phone: parsed.data.next_of_kin_phone || null,
+      next_of_kin_address: parsed.data.next_of_kin_address || null,
       status: parsed.data.status,
       photo_url: parsed.data.photo_url || null,
     })

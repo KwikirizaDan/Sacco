@@ -7,6 +7,7 @@ import { formatUGX, formatDate } from "@/lib/utils/format"
 import { toast } from "sonner"
 import {
   User,
+  UserCheck,
   Phone,
   Mail,
   MapPin,
@@ -520,6 +521,46 @@ export function MemberProfile({
           </div>
         </CardContent>
       </Card>
+
+      {/* Next of Kin */}
+      {(member.next_of_kin ||
+        member.next_of_kin_relationship ||
+        member.next_of_kin_phone ||
+        member.next_of_kin_address) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Next of Kin</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {member.next_of_kin && (
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span>{member.next_of_kin}</span>
+                </div>
+              )}
+              {member.next_of_kin_relationship && (
+                <div className="flex items-center gap-2">
+                  <UserCheck className="h-4 w-4 text-muted-foreground" />
+                  <span>{member.next_of_kin_relationship}</span>
+                </div>
+              )}
+              {member.next_of_kin_phone && (
+                <div className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-muted-foreground" />
+                  <span>{member.next_of_kin_phone}</span>
+                </div>
+              )}
+              {member.next_of_kin_address && (
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  <span>{member.next_of_kin_address}</span>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Tabs */}
       <Tabs defaultValue="loans" className="space-y-4">

@@ -37,6 +37,7 @@ export async function updateGeneralSettingsAction(
         contact_email: (formData.get("contact_email") as string) || null,
         contact_phone: (formData.get("contact_phone") as string) || null,
         address: (formData.get("address") as string) || null,
+        tagline: (formData.get("tagline") as string) || null,
         primary_color: (formData.get("primary_color") as string) || "#16a34a",
         updated_at: new Date(),
       })

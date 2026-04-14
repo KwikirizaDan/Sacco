@@ -14,6 +14,7 @@ import {
   Bell,
   MessageSquare,
   UserCog,
+  HelpCircle,
   LogOut,
   ChevronUp,
 } from "lucide-react"
@@ -80,6 +81,7 @@ const navGroups = [
       },
       { title: "Documents", href: "/documents", icon: FileText },
       { title: "Notifications", href: "/notifications", icon: Bell },
+      { title: "Support", href: "/support", icon: HelpCircle },
     ],
   },
   {
@@ -105,6 +107,7 @@ const ROLE_NAV: Record<string, string[]> = {
     "Notifications",
     "Reports",
     "Users",
+    "Support",
     "Settings",
   ],
   cashier: [
@@ -117,6 +120,7 @@ const ROLE_NAV: Record<string, string[]> = {
     "Documents",
     "Notifications",
     "Users",
+    "Support",
   ],
   field_agent: [
     "Dashboard",
@@ -125,6 +129,7 @@ const ROLE_NAV: Record<string, string[]> = {
     "Savings",
     "Fines",
     "Complaints",
+    "Support",
   ],
 }
 
@@ -168,7 +173,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
   }
 
   return (
-    <Sidebar collapsible="icon" {...props}>
+    <Sidebar collapsible="icon" {...props} suppressHydrationWarning>
       {/* Logo */}
       <SidebarHeader>
         <SidebarMenu>
