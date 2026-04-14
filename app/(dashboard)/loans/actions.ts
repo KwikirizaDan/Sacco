@@ -1,6 +1,7 @@
 // app/(dashboard)/loans/actions.ts (Complete)
 "use server"
 
+import { getCurrentUser } from "@/lib/auth"
 import { smartDb } from "@/lib/db/database-adapter"
 import {
   loans,
@@ -12,7 +13,6 @@ import {
 } from "@/db/schema"
 import { revalidatePath } from "next/cache"
 import { sendSms, smsTemplates } from "@/lib/sms"
-import { SACCO_ID } from "@/lib/constants"
 import {
   calculateLoan,
   getInterestRateForAmount,
@@ -45,6 +45,9 @@ export async function addLoanAction(
   formData: FormData
 ): Promise<LoanFormState> {
   try {
+    const user = await getCurrentUser()
+    if (!user) return { error: "Not authenticated." }
+
     const raw = {
       member_id: formData.get("member_id") as string,
       amount: formData.get("amount") as string,
@@ -73,7 +76,7 @@ export async function addLoanAction(
     // Get applicable interest rate from interest_rates table
     const interestRatesList = await smartDb
       .select(interestRates)
-      .where(eq(interestRates.sacco_id, SACCO_ID))
+      .where(eq(interestRates.sacco_id, user.saccoId))
 
     const { rate: interestRate, rateType: interestType } =
       getInterestRateForAmount(amountInCents, interestRatesList)
@@ -96,7 +99,7 @@ export async function addLoanAction(
 
     // Insert loan
     await smartDb.insert(loans).values({
-      sacco_id: SACCO_ID,
+      sacco_id: user.saccoId,
       member_id: parsed.data.member_id,
       interest_rate_id: applicableRate?.id,
       loan_ref,
@@ -222,6 +225,9 @@ export async function declineLoanAction(
 
 export async function disburseLoanAction(id: string): Promise<LoanFormState> {
   try {
+    const user = await getCurrentUser()
+    if (!user) return { error: "Not authenticated." }
+
     const [loan] = await smartDb.select(loans).where(eq(loans.id, id))
 
     if (!loan) return { error: "Loan not found." }
@@ -242,7 +248,7 @@ export async function disburseLoanAction(id: string): Promise<LoanFormState> {
       .where(eq(loans.id, id))
 
     await smartDb.insert(transactions).values({
-      sacco_id: SACCO_ID,
+      sacco_id: user.saccoId,
       member_id: loan.member_id,
       type: "loan_disbursement",
       amount: loan.amount,
@@ -306,6 +312,9 @@ export async function repayLoanAction(
   formData: FormData
 ): Promise<LoanFormState> {
   try {
+    const user = await getCurrentUser()
+    if (!user) return { error: "Not authenticated." }
+
     const id = formData.get("loan_id") as string
     const amountStr = (formData.get("amount") as string)?.replace(/,/g, "")
     const amount = Math.round(parseFloat(amountStr || "0") * 100)
@@ -361,7 +370,7 @@ export async function repayLoanAction(
       .where(eq(loans.id, id))
 
     await smartDb.insert(transactions).values({
-      sacco_id: SACCO_ID,
+      sacco_id: user.saccoId,
       member_id: loan.member_id,
       type: "loan_repayment",
       amount,
@@ -402,6 +411,9 @@ export async function topUpLoanAction(
   formData: FormData
 ): Promise<LoanFormState> {
   try {
+    const user = await getCurrentUser()
+    if (!user) return { error: "Not authenticated." }
+
     const id = formData.get("loan_id") as string
     const amountStr = (formData.get("amount") as string)?.replace(/,/g, "")
     const amount = Math.round(parseFloat(amountStr || "0") * 100)
@@ -445,7 +457,7 @@ export async function topUpLoanAction(
 
     // Record transaction
     await smartDb.insert(transactions).values({
-      sacco_id: SACCO_ID,
+      sacco_id: user.saccoId,
       member_id: loan.member_id,
       type: "loan_disbursement", // Top-up is essentially additional disbursement
       amount,

@@ -16,13 +16,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Loader2, Calculator, ArrowLeft, CheckCircle, Search, TrendingUp, Banknote, Clock, AlertTriangle } from "lucide-react"
+import {
+  Loader2,
+  Calculator,
+  ArrowLeft,
+  CheckCircle,
+  Search,
+  TrendingUp,
+  Banknote,
+  Clock,
+  AlertTriangle,
+} from "lucide-react"
 import Link from "next/link"
 
 const initialState: LoanFormState = {}
 
 interface NewLoanFormProps {
-  members: { id: string; full_name: string; member_code: string; phone: string | null }[]
+  members: {
+    id: string
+    full_name: string
+    member_code: string
+    phone: string | null
+  }[]
   interestRates: any[]
 }
 
@@ -38,16 +53,16 @@ function SectionHeader({
   description?: string
 }) {
   return (
-    <div className="flex items-start gap-4 mb-6">
-      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground text-xs font-semibold flex items-center justify-center tracking-wide mt-0.5">
+    <div className="mb-6 flex items-start gap-4">
+      <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold tracking-wide text-primary-foreground">
         {step}
       </div>
       <div>
-        <h3 className="text-sm font-semibold text-foreground uppercase tracking-widest">
+        <h3 className="text-sm font-semibold tracking-widest text-foreground uppercase">
           {title}
         </h3>
         {description && (
-          <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
+          <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
         )}
       </div>
     </div>
@@ -75,18 +90,18 @@ function Field({
     <div className={`flex flex-col gap-1.5 ${span ? "sm:col-span-2" : ""}`}>
       <label
         htmlFor={id}
-        className="text-xs font-medium text-muted-foreground uppercase tracking-widest"
+        className="text-xs font-medium tracking-widest text-muted-foreground uppercase"
       >
         {label}
-        {required && <span className="text-destructive ml-1">*</span>}
+        {required && <span className="ml-1 text-destructive">*</span>}
       </label>
       {children}
       {hint && !error && (
         <p className="text-xs text-muted-foreground">{hint}</p>
       )}
       {error && (
-        <p className="text-xs text-destructive flex items-center gap-1 mt-0.5">
-          <span className="inline-block w-1 h-1 rounded-full bg-destructive" />
+        <p className="mt-0.5 flex items-center gap-1 text-xs text-destructive">
+          <span className="inline-block h-1 w-1 rounded-full bg-destructive" />
           {error}
         </p>
       )}
@@ -120,8 +135,8 @@ function StatCard({
           : "text-foreground"
 
   return (
-    <div className="bg-background rounded-xl border border-border p-4 flex flex-col gap-1">
-      <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
+    <div className="flex flex-col gap-1 rounded-xl border border-border bg-background p-4">
+      <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
         {label}
       </p>
       <p className={`text-lg font-bold ${valueColor}`}>{value}</p>
@@ -134,7 +149,10 @@ function StatCard({
 
 export function NewLoanForm({ members, interestRates }: NewLoanFormProps) {
   const router = useRouter()
-  const [state, formAction, isPending] = useActionState(addLoanAction, initialState)
+  const [state, formAction, isPending] = useActionState(
+    addLoanAction,
+    initialState
+  )
 
   const [amount, setAmount] = useState("")
   const [durationMonths, setDurationMonths] = useState("12")
@@ -169,8 +187,7 @@ export function NewLoanForm({ members, interestRates }: NewLoanFormProps) {
     if (!amount || Number(amount) <= 0) return null
     const amountCents = Number(amount) * 100
     const applicable = interestRates.find(
-      (rate) =>
-        amountCents >= rate.min_amount && amountCents <= rate.max_amount
+      (rate) => amountCents >= rate.min_amount && amountCents <= rate.max_amount
     )
     if (!applicable) return null
     return {
@@ -189,7 +206,10 @@ export function NewLoanForm({ members, interestRates }: NewLoanFormProps) {
       ? calculateLoan({
           principal: Number(amount) * 100,
           interestRate: interestInfo!.rate,
-          interestType: interestInfo!.rateType as "daily" | "monthly" | "annual",
+          interestType: interestInfo!.rateType as
+            | "daily"
+            | "monthly"
+            | "annual",
           durationMonths: Number(durationMonths),
         })
       : null
@@ -199,10 +219,9 @@ export function NewLoanForm({ members, interestRates }: NewLoanFormProps) {
   const selectedMember = members.find((m) => m.id === selectedMemberId)
 
   return (
-    <form action={formAction} className="max-w-2xl mx-auto">
-
+    <form action={formAction} className="mx-auto max-w-2xl">
       {/* ── Section 1: Member ── */}
-      <div className="bg-card border border-border rounded-2xl p-6 mb-4 shadow-sm">
+      <div className="mb-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
         <SectionHeader
           step={1}
           title="Select Member"
@@ -245,7 +264,7 @@ export function NewLoanForm({ members, interestRates }: NewLoanFormProps) {
                 <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
                 <Input
                   placeholder="Search by name, code, or phone…"
-                  className="h-8 border-0 p-0 shadow-none focus-visible:ring-0 text-sm"
+                  className="h-8 border-0 p-0 text-sm shadow-none focus-visible:ring-0"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onClick={(e) => e.stopPropagation()}
@@ -280,14 +299,14 @@ export function NewLoanForm({ members, interestRates }: NewLoanFormProps) {
       </div>
 
       {/* ── Section 2: Loan Details ── */}
-      <div className="bg-card border border-border rounded-2xl p-6 mb-4 shadow-sm">
+      <div className="mb-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
         <SectionHeader
           step={2}
           title="Loan Details"
           description="Set the principal amount, duration, and repayment date."
         />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
+        <div className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
           <Field
             id="amount"
             label="Loan Amount (UGX)"
@@ -366,14 +385,14 @@ export function NewLoanForm({ members, interestRates }: NewLoanFormProps) {
 
       {/* ── Section 3: Calculation Summary ── */}
       {interestInfo && calculation && (
-        <div className="bg-card border border-border rounded-2xl p-6 mb-4 shadow-sm">
+        <div className="mb-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
           <SectionHeader
             step={3}
             title="Calculation Summary"
             description={`Based on a ${interestInfo.rate}% ${interestInfo.rateType} interest rate for amounts between ${formatUGX(interestInfo.minAmount)} – ${formatUGX(interestInfo.maxAmount)}.`}
           />
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <StatCard
               label="Principal"
               value={formatUGX(calculation.principal)}
@@ -384,7 +403,7 @@ export function NewLoanForm({ members, interestRates }: NewLoanFormProps) {
               accent="blue"
             />
             <StatCard
-              label="Total to Receive"
+              label="Total to Repay"
               value={formatUGX(calculation.totalExpectedReceived)}
               accent="green"
               sub="Principal + interest"
@@ -409,7 +428,7 @@ export function NewLoanForm({ members, interestRates }: NewLoanFormProps) {
 
       {/* ── Section 4: Confirmation ── */}
       {calculation && (
-        <div className="bg-card border border-border rounded-2xl p-6 mb-6 shadow-sm">
+        <div className="mb-6 rounded-2xl border border-border bg-card p-6 shadow-sm">
           <SectionHeader
             step={4}
             title="Confirmation"
@@ -418,7 +437,7 @@ export function NewLoanForm({ members, interestRates }: NewLoanFormProps) {
 
           <label
             htmlFor="confirm"
-            className={`flex items-start gap-4 rounded-xl border p-4 cursor-pointer transition-all ${
+            className={`flex cursor-pointer items-start gap-4 rounded-xl border p-4 transition-all ${
               confirmed
                 ? "border-primary/40 bg-primary/5"
                 : "border-border hover:border-ring/40 hover:bg-accent/40"
@@ -427,11 +446,11 @@ export function NewLoanForm({ members, interestRates }: NewLoanFormProps) {
             <input
               type="checkbox"
               id="confirm"
-              className="mt-0.5 h-4 w-4 accent-primary shrink-0"
+              className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
               checked={confirmed}
               onChange={(e) => setConfirmed(e.target.checked)}
             />
-            <p className="text-sm text-muted-foreground leading-relaxed">
+            <p className="text-sm leading-relaxed text-muted-foreground">
               I confirm all information is correct. I understand the member is
               required to repay{" "}
               <span className="font-semibold text-foreground">
@@ -460,7 +479,7 @@ export function NewLoanForm({ members, interestRates }: NewLoanFormProps) {
         <Link href="/loans">
           <button
             type="button"
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
             Cancel
@@ -470,11 +489,11 @@ export function NewLoanForm({ members, interestRates }: NewLoanFormProps) {
         <Button
           type="submit"
           disabled={isPending || !isFormValid}
-          className="h-10 px-6 rounded-xl text-sm font-medium tracking-wide transition-all shadow-sm"
+          className="h-10 rounded-xl px-6 text-sm font-medium tracking-wide shadow-sm transition-all"
         >
           {isPending ? (
             <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Submitting…
             </>
           ) : (

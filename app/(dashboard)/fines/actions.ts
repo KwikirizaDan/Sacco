@@ -1,10 +1,10 @@
 "use server"
 
+import { getCurrentUser } from "@/lib/auth"
 import { smartDb } from "@/lib/db/database-adapter"
 import { fines, members, fineCategories } from "@/db/schema"
 import { eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
-import { SACCO_ID } from "@/lib/constants"
 import { sendSms, smsTemplates } from "@/lib/sms"
 import {
   processPayment,
@@ -38,6 +38,9 @@ export async function addFineAction(
   formData: FormData
 ): Promise<FineFormState> {
   try {
+    const user = await getCurrentUser()
+    if (!user) return { error: "Not authenticated." }
+
     const raw = {
       member_id: formData.get("member_id") as string,
       category_id: formData.get("category_id") as string,
@@ -61,7 +64,7 @@ export async function addFineAction(
     const fine_ref = `FN-${Date.now()}`
 
     await smartDb.insert(fines).values({
-      sacco_id: SACCO_ID,
+      sacco_id: user.saccoId,
       member_id: parsed.data.member_id,
       category_id: parsed.data.category_id || null,
       fine_ref,

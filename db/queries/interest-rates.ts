@@ -181,7 +181,7 @@ export async function addInterestRate(
     const [newRate] = await db
       .insert(interestRates)
       .values({
-        sacco_id: SACCO_ID,
+        sacco_id: saccoId,
         min_amount: minAmountInCents,
         max_amount: maxAmountInCents,
         rate: data.rate.toString(),

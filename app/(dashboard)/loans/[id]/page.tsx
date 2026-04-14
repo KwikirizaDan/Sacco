@@ -316,7 +316,7 @@ async function LoanDetailContent({ id }: { id: string }) {
           <InfoGrid>
             <InfoItem label="Principal" value={formatUGX(loan.amount)} />
             <InfoItem
-              label="Total to Receive"
+              label="Total to Repay"
               value={formatUGX(loan.expected_received)}
               accent="green"
             />

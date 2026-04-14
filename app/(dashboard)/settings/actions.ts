@@ -1,5 +1,6 @@
 "use server"
 
+import { getCurrentUser } from "@/lib/auth"
 import { smartDb } from "@/lib/db/database-adapter"
 import {
   saccos,
@@ -10,13 +11,13 @@ import {
 } from "@/db/schema"
 import { eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
-import { SACCO_ID } from "@/lib/constants"
 import { put } from "@vercel/blob"
 import { z } from "zod"
 
 export type SettingsState = {
   success?: boolean
   error?: string
+  url?: string
 }
 
 // ─── Update General Settings ──────────────────────────────────────────────────
@@ -26,6 +27,9 @@ export async function updateGeneralSettingsAction(
   formData: FormData
 ): Promise<SettingsState> {
   try {
+    const user = await getCurrentUser()
+    if (!user) return { error: "Not authenticated." }
+
     await smartDb
       .update(saccos)
       .set({
@@ -36,7 +40,7 @@ export async function updateGeneralSettingsAction(
         primary_color: (formData.get("primary_color") as string) || "#16a34a",
         updated_at: new Date(),
       })
-      .where(eq(saccos.id, SACCO_ID))
+      .where(eq(saccos.id, user.saccoId))
 
     revalidatePath("/settings")
     return { success: true }
@@ -51,21 +55,25 @@ export async function updateGeneralSettingsAction(
 export async function uploadLogoAction(
   prevState: SettingsState,
   formData: FormData
-): Promise<SettingsState & { url?: string }> {
+): Promise<SettingsState> {
   try {
-    const file = formData.get("logo") as File
-    if (!file || file.size === 0) return { error: "No file provided." }
-    if (file.size > 2 * 1024 * 1024)
-      return { error: "File too large. Max 2MB." }
+    const user = await getCurrentUser()
+    if (!user) return { error: "Not authenticated." }
 
-    const blob = await put(`logos/${SACCO_ID}-logo`, file, {
+    const file = formData.get("logo") as File
+    if (!file) return { error: "No file provided." }
+
+    const blob = await put(`logos/${user.saccoId}-logo`, file, {
       access: "public",
     })
 
     await smartDb
       .update(saccos)
-      .set({ logo_url: blob.url, updated_at: new Date() })
-      .where(eq(saccos.id, SACCO_ID))
+      .set({
+        logo_url: blob.url,
+        updated_at: new Date(),
+      })
+      .where(eq(saccos.id, user.saccoId))
 
     revalidatePath("/settings")
     return { success: true, url: blob.url }
@@ -82,6 +90,9 @@ export async function addInterestRateAction(
   formData: FormData
 ): Promise<SettingsState> {
   try {
+    const user = await getCurrentUser()
+    if (!user) return { error: "Not authenticated." }
+
     const min = parseInt(formData.get("min_amount") as string) * 100
     const max = parseInt(formData.get("max_amount") as string) * 100
     const rate = formData.get("rate") as string
@@ -93,7 +104,7 @@ export async function addInterestRateAction(
     if (min >= max) return { error: "Min amount must be less than max amount." }
 
     await smartDb.insert(interestRates).values({
-      sacco_id: SACCO_ID,
+      sacco_id: user.saccoId,
       min_amount: min,
       max_amount: max,
       rate,
@@ -130,8 +141,11 @@ export async function addLoanCategoryAction(
   formData: FormData
 ): Promise<SettingsState> {
   try {
+    const user = await getCurrentUser()
+    if (!user) return { error: "Not authenticated." }
+
     await smartDb.insert(loanCategories).values({
-      sacco_id: SACCO_ID,
+      sacco_id: user.saccoId,
       name: formData.get("name") as string,
       description: (formData.get("description") as string) || null,
       min_amount: parseInt(formData.get("min_amount") as string) * 100 || 0,
@@ -171,8 +185,11 @@ export async function addSavingsCategoryAction(
   formData: FormData
 ): Promise<SettingsState> {
   try {
+    const user = await getCurrentUser()
+    if (!user) return { error: "Not authenticated." }
+
     await smartDb.insert(savingsCategories).values({
-      sacco_id: SACCO_ID,
+      sacco_id: user.saccoId,
       name: formData.get("name") as string,
       description: (formData.get("description") as string) || null,
       interest_rate: (formData.get("interest_rate") as string) || "0",
@@ -208,8 +225,11 @@ export async function addFineCategoryAction(
   formData: FormData
 ): Promise<SettingsState> {
   try {
+    const user = await getCurrentUser()
+    if (!user) return { error: "Not authenticated." }
+
     await smartDb.insert(fineCategories).values({
-      sacco_id: SACCO_ID,
+      sacco_id: user.saccoId,
       name: formData.get("name") as string,
       default_amount:
         parseInt(formData.get("default_amount") as string) * 100 || 0,
@@ -318,7 +338,12 @@ export async function updatePaymentSettingsAction(
   formData: FormData
 ): Promise<SettingsState> {
   try {
-    const existing = await smartDb.select(saccos).where(eq(saccos.id, SACCO_ID))
+    const user = await getCurrentUser()
+    if (!user) return { error: "Not authenticated." }
+
+    const existing = await smartDb
+      .select(saccos)
+      .where(eq(saccos.id, user.saccoId))
 
     const currentSettings = JSON.parse(existing[0]?.settings ?? "{}")
 
@@ -339,7 +364,7 @@ export async function updatePaymentSettingsAction(
     await smartDb
       .update(saccos)
       .set({ settings: JSON.stringify(newSettings), updated_at: new Date() })
-      .where(eq(saccos.id, SACCO_ID))
+      .where(eq(saccos.id, user.saccoId))
 
     revalidatePath("/settings")
     return { success: true }

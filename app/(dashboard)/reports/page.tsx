@@ -1,3 +1,4 @@
+import { requireAuth } from "@/lib/auth"
 import { db } from "@/db"
 import {
   loans,
@@ -13,10 +14,10 @@ import {
   fineCategories,
 } from "@/db/schema"
 import { eq, sum, count, desc, and, gte, lte, sql } from "drizzle-orm"
-import { SACCO_ID } from "@/lib/constants"
 import { ReportsClient } from "./components/reports-client"
 
 export default async function ReportsPage() {
+  const user = await requireAuth()
   // ─── Loan Stats ───────────────────────────────────────────────────────────
   const [loanStats] = await db
     .select({
@@ -25,50 +26,50 @@ export default async function ReportsPage() {
       totalExpected: sum(loans.expected_received),
     })
     .from(loans)
-    .where(eq(loans.sacco_id, SACCO_ID))
+    .where(eq(loans.sacco_id, user.saccoId))
 
   const [activeLoans] = await db
     .select({ total: sum(loans.balance), count: count() })
     .from(loans)
-    .where(and(eq(loans.sacco_id, SACCO_ID), eq(loans.status, "active")))
+    .where(and(eq(loans.sacco_id, user.saccoId), eq(loans.status, "active")))
 
   const [disbursedLoans] = await db
     .select({ total: sum(loans.amount), count: count() })
     .from(loans)
-    .where(and(eq(loans.sacco_id, SACCO_ID), eq(loans.status, "disbursed")))
+    .where(and(eq(loans.sacco_id, user.saccoId), eq(loans.status, "disbursed")))
 
   const [approvedLoans] = await db
     .select({ count: count() })
     .from(loans)
-    .where(and(eq(loans.sacco_id, SACCO_ID), eq(loans.status, "approved")))
+    .where(and(eq(loans.sacco_id, user.saccoId), eq(loans.status, "approved")))
 
   const [pendingLoans] = await db
     .select({ count: count() })
     .from(loans)
-    .where(and(eq(loans.sacco_id, SACCO_ID), eq(loans.status, "pending")))
+    .where(and(eq(loans.sacco_id, user.saccoId), eq(loans.status, "pending")))
 
   const [settledLoans] = await db
     .select({ count: count() })
     .from(loans)
-    .where(and(eq(loans.sacco_id, SACCO_ID), eq(loans.status, "settled")))
+    .where(and(eq(loans.sacco_id, user.saccoId), eq(loans.status, "settled")))
 
   const [defaultedLoans] = await db
     .select({ count: count() })
     .from(loans)
-    .where(and(eq(loans.sacco_id, SACCO_ID), eq(loans.status, "defaulted")))
+    .where(and(eq(loans.sacco_id, user.saccoId), eq(loans.status, "defaulted")))
 
   // ─── Savings Stats ────────────────────────────────────────────────────────
   const [savingsStats] = await db
     .select({ total: sum(savingsAccounts.balance), count: count() })
     .from(savingsAccounts)
-    .where(eq(savingsAccounts.sacco_id, SACCO_ID))
+    .where(eq(savingsAccounts.sacco_id, user.saccoId))
 
   const [fixedSavings] = await db
     .select({ total: sum(savingsAccounts.balance), count: count() })
     .from(savingsAccounts)
     .where(
       and(
-        eq(savingsAccounts.sacco_id, SACCO_ID),
+        eq(savingsAccounts.sacco_id, user.saccoId),
         eq(savingsAccounts.account_type, "fixed")
       )
     )
@@ -78,7 +79,7 @@ export default async function ReportsPage() {
     .from(savingsAccounts)
     .where(
       and(
-        eq(savingsAccounts.sacco_id, SACCO_ID),
+        eq(savingsAccounts.sacco_id, user.saccoId),
         eq(savingsAccounts.is_locked, true)
       )
     )
@@ -87,43 +88,49 @@ export default async function ReportsPage() {
   const [memberStats] = await db
     .select({ count: count() })
     .from(members)
-    .where(eq(members.sacco_id, SACCO_ID))
+    .where(eq(members.sacco_id, user.saccoId))
 
   const [activeMembers] = await db
     .select({ count: count() })
     .from(members)
-    .where(and(eq(members.sacco_id, SACCO_ID), eq(members.status, "active")))
+    .where(
+      and(eq(members.sacco_id, user.saccoId), eq(members.status, "active"))
+    )
 
   const [suspendedMembers] = await db
     .select({ count: count() })
     .from(members)
-    .where(and(eq(members.sacco_id, SACCO_ID), eq(members.status, "suspended")))
+    .where(
+      and(eq(members.sacco_id, user.saccoId), eq(members.status, "suspended"))
+    )
 
   const [exitedMembers] = await db
     .select({ count: count() })
     .from(members)
-    .where(and(eq(members.sacco_id, SACCO_ID), eq(members.status, "exited")))
+    .where(
+      and(eq(members.sacco_id, user.saccoId), eq(members.status, "exited"))
+    )
 
   // ─── Fine Stats ───────────────────────────────────────────────────────────
   const [fineStats] = await db
     .select({ total: sum(fines.amount), count: count() })
     .from(fines)
-    .where(eq(fines.sacco_id, SACCO_ID))
+    .where(eq(fines.sacco_id, user.saccoId))
 
   const [pendingFines] = await db
     .select({ total: sum(fines.amount), count: count() })
     .from(fines)
-    .where(and(eq(fines.sacco_id, SACCO_ID), eq(fines.status, "pending")))
+    .where(and(eq(fines.sacco_id, user.saccoId), eq(fines.status, "pending")))
 
   const [paidFines] = await db
     .select({ total: sum(fines.amount), count: count() })
     .from(fines)
-    .where(and(eq(fines.sacco_id, SACCO_ID), eq(fines.status, "paid")))
+    .where(and(eq(fines.sacco_id, user.saccoId), eq(fines.status, "paid")))
 
   const [waivedFines] = await db
     .select({ total: sum(fines.amount), count: count() })
     .from(fines)
-    .where(and(eq(fines.sacco_id, SACCO_ID), eq(fines.status, "waived")))
+    .where(and(eq(fines.sacco_id, user.saccoId), eq(fines.status, "waived")))
 
   // ─── Transaction Stats ────────────────────────────────────────────────────
   const [totalDeposits] = await db
@@ -131,7 +138,7 @@ export default async function ReportsPage() {
     .from(transactions)
     .where(
       and(
-        eq(transactions.sacco_id, SACCO_ID),
+        eq(transactions.sacco_id, user.saccoId),
         eq(transactions.type, "savings_deposit")
       )
     )
@@ -141,7 +148,7 @@ export default async function ReportsPage() {
     .from(transactions)
     .where(
       and(
-        eq(transactions.sacco_id, SACCO_ID),
+        eq(transactions.sacco_id, user.saccoId),
         eq(transactions.type, "savings_withdrawal")
       )
     )
@@ -151,7 +158,7 @@ export default async function ReportsPage() {
     .from(transactions)
     .where(
       and(
-        eq(transactions.sacco_id, SACCO_ID),
+        eq(transactions.sacco_id, user.saccoId),
         eq(transactions.type, "loan_repayment")
       )
     )
@@ -160,34 +167,37 @@ export default async function ReportsPage() {
   const [complaintStats] = await db
     .select({ count: count() })
     .from(complaints)
-    .where(eq(complaints.sacco_id, SACCO_ID))
+    .where(eq(complaints.sacco_id, user.saccoId))
 
   const [openComplaints] = await db
     .select({ count: count() })
     .from(complaints)
     .where(
-      and(eq(complaints.sacco_id, SACCO_ID), eq(complaints.status, "open"))
+      and(eq(complaints.sacco_id, user.saccoId), eq(complaints.status, "open"))
     )
 
   const [resolvedComplaints] = await db
     .select({ count: count() })
     .from(complaints)
     .where(
-      and(eq(complaints.sacco_id, SACCO_ID), eq(complaints.status, "resolved"))
+      and(
+        eq(complaints.sacco_id, user.saccoId),
+        eq(complaints.status, "resolved")
+      )
     )
 
   // ─── Notification Stats ───────────────────────────────────────────────────
   const [notificationStats] = await db
     .select({ count: count() })
     .from(notifications)
-    .where(eq(notifications.sacco_id, SACCO_ID))
+    .where(eq(notifications.sacco_id, user.saccoId))
 
   const [sentNotifications] = await db
     .select({ count: count() })
     .from(notifications)
     .where(
       and(
-        eq(notifications.sacco_id, SACCO_ID),
+        eq(notifications.sacco_id, user.saccoId),
         eq(notifications.status, "sent")
       )
     )
@@ -197,7 +207,7 @@ export default async function ReportsPage() {
     .from(notifications)
     .where(
       and(
-        eq(notifications.sacco_id, SACCO_ID),
+        eq(notifications.sacco_id, user.saccoId),
         eq(notifications.status, "failed")
       )
     )
@@ -233,7 +243,7 @@ export default async function ReportsPage() {
     .from(loans)
     .leftJoin(members, eq(loans.member_id, members.id))
     .leftJoin(loanCategories, eq(loans.category_id, loanCategories.id))
-    .where(eq(loans.sacco_id, SACCO_ID))
+    .where(eq(loans.sacco_id, user.saccoId))
     .orderBy(desc(loans.created_at))
     .limit(200)
 
@@ -259,7 +269,7 @@ export default async function ReportsPage() {
       savingsCategories,
       eq(savingsAccounts.category_id, savingsCategories.id)
     )
-    .where(eq(savingsAccounts.sacco_id, SACCO_ID))
+    .where(eq(savingsAccounts.sacco_id, user.saccoId))
     .orderBy(desc(savingsAccounts.balance))
     .limit(200)
 
@@ -267,7 +277,7 @@ export default async function ReportsPage() {
   const allMembers = await db
     .select()
     .from(members)
-    .where(eq(members.sacco_id, SACCO_ID))
+    .where(eq(members.sacco_id, user.saccoId))
     .orderBy(desc(members.created_at))
     .limit(200)
 
@@ -295,7 +305,7 @@ export default async function ReportsPage() {
     .from(fines)
     .leftJoin(members, eq(fines.member_id, members.id))
     .leftJoin(fineCategories, eq(fines.category_id, fineCategories.id))
-    .where(eq(fines.sacco_id, SACCO_ID))
+    .where(eq(fines.sacco_id, user.saccoId))
     .orderBy(desc(fines.created_at))
     .limit(200)
 
@@ -315,7 +325,7 @@ export default async function ReportsPage() {
     })
     .from(transactions)
     .leftJoin(members, eq(transactions.member_id, members.id))
-    .where(eq(transactions.sacco_id, SACCO_ID))
+    .where(eq(transactions.sacco_id, user.saccoId))
     .orderBy(desc(transactions.created_at))
     .limit(200)
 
@@ -341,7 +351,7 @@ export default async function ReportsPage() {
     })
     .from(complaints)
     .leftJoin(members, eq(complaints.member_id, members.id))
-    .where(eq(complaints.sacco_id, SACCO_ID))
+    .where(eq(complaints.sacco_id, user.saccoId))
     .orderBy(desc(complaints.created_at))
     .limit(200)
 
@@ -366,7 +376,7 @@ export default async function ReportsPage() {
     })
     .from(notifications)
     .leftJoin(members, eq(notifications.member_id, members.id))
-    .where(eq(notifications.sacco_id, SACCO_ID))
+    .where(eq(notifications.sacco_id, user.saccoId))
     .orderBy(desc(notifications.created_at))
     .limit(200)
 
@@ -374,26 +384,26 @@ export default async function ReportsPage() {
   const interestRatesList = await db
     .select()
     .from(interestRates)
-    .where(eq(interestRates.sacco_id, SACCO_ID))
+    .where(eq(interestRates.sacco_id, user.saccoId))
     .orderBy(interestRates.min_amount)
 
   // Loan categories
   const loanCategoriesList = await db
     .select()
     .from(loanCategories)
-    .where(eq(loanCategories.sacco_id, SACCO_ID))
+    .where(eq(loanCategories.sacco_id, user.saccoId))
 
   // Savings categories
   const savingsCategoriesList = await db
     .select()
     .from(savingsCategories)
-    .where(eq(savingsCategories.sacco_id, SACCO_ID))
+    .where(eq(savingsCategories.sacco_id, user.saccoId))
 
   // Fine categories
   const fineCategoriesList = await db
     .select()
     .from(fineCategories)
-    .where(eq(fineCategories.sacco_id, SACCO_ID))
+    .where(eq(fineCategories.sacco_id, user.saccoId))
 
   return (
     <ReportsClient

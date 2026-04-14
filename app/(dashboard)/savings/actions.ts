@@ -1,5 +1,6 @@
 "use server"
 
+import { getCurrentUser } from "@/lib/auth"
 import { smartDb } from "@/lib/db/database-adapter"
 import {
   savingsAccounts,
@@ -10,7 +11,6 @@ import {
 } from "@/db/schema"
 import { eq, and } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
-import { SACCO_ID } from "@/lib/constants"
 import { sendSms, smsTemplates } from "@/lib/sms"
 import { initiateFlutterwaveTransfer } from "@/lib/payments/flutterwave"
 import { z } from "zod"
@@ -28,6 +28,9 @@ export async function createSavingsAccountAction(
   formData: FormData
 ): Promise<SavingsFormState> {
   try {
+    const user = await getCurrentUser()
+    if (!user) return { error: "Not authenticated." }
+
     const member_id = formData.get("member_id") as string
     const category_id = formData.get("category_id") as string
     const account_type = formData.get("account_type") as string
@@ -41,7 +44,7 @@ export async function createSavingsAccountAction(
       .where(
         and(
           eq(savingsAccounts.member_id, member_id),
-          eq(savingsAccounts.sacco_id, SACCO_ID)
+          eq(savingsAccounts.sacco_id, user.saccoId)
         )
       )
 
@@ -54,7 +57,7 @@ export async function createSavingsAccountAction(
     const [account] = await smartDb
       .insert(savingsAccounts)
       .values({
-        sacco_id: SACCO_ID,
+        sacco_id: user.saccoId,
         member_id,
         category_id: category_id || null,
         account_number,
@@ -65,7 +68,7 @@ export async function createSavingsAccountAction(
 
     if (initial_deposit > 0) {
       await smartDb.insert(transactions).values({
-        sacco_id: SACCO_ID,
+        sacco_id: user.saccoId,
         member_id,
         type: "savings_deposit",
         amount: initial_deposit,
@@ -111,6 +114,9 @@ export async function depositAction(
   formData: FormData
 ): Promise<SavingsFormState> {
   try {
+    const user = await getCurrentUser()
+    if (!user) return { error: "Not authenticated." }
+
     const account_id = formData.get("account_id") as string
     const amount = parseInt(formData.get("amount") as string) * 100
     const narration = formData.get("narration") as string
@@ -120,7 +126,12 @@ export async function depositAction(
 
     const [account] = await smartDb
       .select(savingsAccounts)
-      .where(eq(savingsAccounts.id, account_id))
+      .where(
+        and(
+          eq(savingsAccounts.id, account_id),
+          eq(savingsAccounts.sacco_id, user.saccoId)
+        )
+      )
 
     if (!account) return { error: "Account not found." }
     if (account.is_locked) return { error: "This account is locked." }
@@ -133,7 +144,7 @@ export async function depositAction(
       .where(eq(savingsAccounts.id, account_id))
 
     await smartDb.insert(transactions).values({
-      sacco_id: SACCO_ID,
+      sacco_id: user.saccoId,
       member_id: account.member_id,
       type: "savings_deposit",
       amount,
@@ -178,6 +189,9 @@ export async function withdrawAction(
   formData: FormData
 ): Promise<SavingsFormState> {
   try {
+    const user = await getCurrentUser()
+    if (!user) return { error: "Not authenticated." }
+
     const account_id = formData.get("account_id") as string
     const amount = parseInt(formData.get("amount") as string) * 100
     const narration = formData.get("narration") as string
@@ -187,7 +201,12 @@ export async function withdrawAction(
 
     const [account] = await smartDb
       .select(savingsAccounts)
-      .where(eq(savingsAccounts.id, account_id))
+      .where(
+        and(
+          eq(savingsAccounts.id, account_id),
+          eq(savingsAccounts.sacco_id, user.saccoId)
+        )
+      )
 
     if (!account) return { error: "Account not found." }
     if (account.is_locked)
@@ -202,7 +221,7 @@ export async function withdrawAction(
       .where(eq(savingsAccounts.id, account_id))
 
     await smartDb.insert(transactions).values({
-      sacco_id: SACCO_ID,
+      sacco_id: user.saccoId,
       member_id: account.member_id,
       type: "savings_withdrawal",
       amount,
@@ -364,6 +383,9 @@ export async function trimToLoanAction(
   formData: FormData
 ): Promise<SavingsFormState> {
   try {
+    const user = await getCurrentUser()
+    if (!user) return { error: "Not authenticated." }
+
     const account_id = formData.get("account_id") as string
     const loan_id = formData.get("loan_id") as string
     const amount = parseInt(formData.get("amount") as string) * 100
@@ -373,14 +395,21 @@ export async function trimToLoanAction(
 
     const [account] = await smartDb
       .select(savingsAccounts)
-      .where(eq(savingsAccounts.id, account_id))
+      .where(
+        and(
+          eq(savingsAccounts.id, account_id),
+          eq(savingsAccounts.sacco_id, user.saccoId)
+        )
+      )
 
     if (!account) return { error: "Account not found." }
     if (account.is_locked) return { error: "Account is locked." }
     if (account.balance < amount)
       return { error: "Insufficient savings balance." }
 
-    const [loan] = await smartDb.select(loans).where(eq(loans.id, loan_id))
+    const [loan] = await smartDb
+      .select(loans)
+      .where(and(eq(loans.id, loan_id), eq(loans.sacco_id, user.saccoId)))
 
     if (!loan) return { error: "Loan not found." }
 
@@ -404,7 +433,7 @@ export async function trimToLoanAction(
       .where(eq(loans.id, loan_id))
 
     await smartDb.insert(transactions).values({
-      sacco_id: SACCO_ID,
+      sacco_id: user.saccoId,
       member_id: account.member_id,
       type: "loan_repayment",
       amount: repayAmount,
@@ -442,9 +471,12 @@ export async function trimToLoanAction(
 
 export async function getSavingsCategoriesForSelect(): Promise<any[]> {
   try {
+    const user = await getCurrentUser()
+    if (!user) return []
+
     const categories = await smartDb
       .select(savingsCategories)
-      .where(eq(savingsCategories.sacco_id, SACCO_ID))
+      .where(eq(savingsCategories.sacco_id, user.saccoId))
     return categories
   } catch (err) {
     console.error(err)
@@ -456,6 +488,9 @@ export async function getSavingsCategoriesForSelect(): Promise<any[]> {
 
 export async function getMembersForSavings(): Promise<any[]> {
   try {
+    const user = await getCurrentUser()
+    if (!user) return []
+
     const membersList = await smartDb
       .select({
         id: members.id,
@@ -464,7 +499,7 @@ export async function getMembersForSavings(): Promise<any[]> {
         phone: members.phone,
       })
       .from(members)
-      .where(eq(members.sacco_id, SACCO_ID))
+      .where(eq(members.sacco_id, user.saccoId))
       .orderBy(members.full_name)
     return membersList
   } catch (err) {

@@ -92,7 +92,7 @@ export async function addMemberAction(
       }
     }
 
-    const member_code = await generateMemberCode()
+    const member_code = await generateMemberCode(user.saccoId)
 
     await smartDb.insert(members).values({
       member_code,
@@ -563,7 +563,7 @@ export async function importMembersAction(
     let imported = 0
 
     for (const row of rows) {
-      const member_code = await generateMemberCode()
+      const member_code = await generateMemberCode(user.saccoId)
       await smartDb.insert(members).values({
         sacco_id: user.saccoId,
         member_code,

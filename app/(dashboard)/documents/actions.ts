@@ -1,11 +1,11 @@
 "use server"
 
+import { getCurrentUser } from "@/lib/auth"
 import { smartDb } from "@/lib/db/database-adapter"
 import { documents } from "@/db/schema"
 import { eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { put, del } from "@vercel/blob"
-import { SACCO_ID } from "@/lib/constants"
 
 export type DocumentFormState = {
   success?: boolean
@@ -18,6 +18,9 @@ export async function uploadDocumentAction(
   formData: FormData
 ): Promise<DocumentFormState> {
   try {
+    const user = await getCurrentUser()
+    if (!user) return { error: "Not authenticated." }
+
     const file = formData.get("file") as File
     const member_id = formData.get("member_id") as string
     const type = formData.get("type") as string
@@ -36,12 +39,12 @@ export async function uploadDocumentAction(
     }
 
     const ext = file.name.split(".").pop()
-    const filename = `documents/${SACCO_ID}/${member_id}/${type}-${Date.now()}.${ext}`
+    const filename = `documents/${user.saccoId}/${member_id}/${type}-${Date.now()}.${ext}`
 
     const blob = await put(filename, file, { access: "public" })
 
     await smartDb.insert(documents).values({
-      sacco_id: SACCO_ID,
+      sacco_id: user.saccoId,
       member_id,
       loan_id: loan_id || null,
       type: type as any,

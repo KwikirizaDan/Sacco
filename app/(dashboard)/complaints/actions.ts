@@ -1,10 +1,10 @@
 "use server"
 
+import { getCurrentUser } from "@/lib/auth"
 import { smartDb, isUsingLocalDatabase } from "@/lib/db/database-adapter"
 import { complaints, members, notifications } from "@/db/schema"
 import { eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
-import { SACCO_ID } from "@/lib/constants"
 import { sendSms } from "@/lib/sms"
 import { z } from "zod"
 
@@ -15,7 +15,11 @@ export type ComplaintFormState = {
 }
 
 const complaintSchema = z.object({
-  member_id: z.string().uuid("Please select a member").optional().or(z.literal("")),
+  member_id: z
+    .string()
+    .uuid("Please select a member")
+    .optional()
+    .or(z.literal("")),
   subject: z.string().min(3, "Subject is required"),
   body: z.string().min(10, "Please describe the complaint in detail"),
   category: z.string().default("general"),
@@ -30,12 +34,15 @@ export async function addComplaintAction(
   formData: FormData
 ): Promise<ComplaintFormState> {
   try {
+    const user = await getCurrentUser()
+    if (!user) return { error: "Not authenticated." }
+
     const raw = {
       member_id: formData.get("member_id") as string,
       subject: formData.get("subject") as string,
       body: formData.get("body") as string,
-      category: formData.get("category") as string || "general",
-      priority: formData.get("priority") as string || "normal",
+      category: (formData.get("category") as string) || "general",
+      priority: (formData.get("priority") as string) || "normal",
       notes: formData.get("notes") as string,
     }
 
@@ -51,7 +58,7 @@ export async function addComplaintAction(
 
     // Use smart database adapter (automatically switches between local and remote)
     await smartDb.insert(complaints).values({
-      sacco_id: SACCO_ID,
+      sacco_id: user.saccoId,
       member_id: parsed.data.member_id || null,
       complaint_ref,
       subject: parsed.data.subject,
@@ -81,8 +88,16 @@ export async function addComplaintAction(
   } catch (err) {
     console.error(err)
     // Check if it's a database connection error (offline)
-    if (err instanceof Error && (err.message.includes('ENOTFOUND') || err.message.includes('ECONNREFUSED') || err.message.includes('getaddrinfo'))) {
-      return { error: "You are offline. Please check your internet connection and try again." }
+    if (
+      err instanceof Error &&
+      (err.message.includes("ENOTFOUND") ||
+        err.message.includes("ECONNREFUSED") ||
+        err.message.includes("getaddrinfo"))
+    ) {
+      return {
+        error:
+          "You are offline. Please check your internet connection and try again.",
+      }
     }
     return { error: "Failed to submit complaint." }
   }
@@ -113,7 +128,11 @@ export async function updateComplaintStatusAction(
       .where(eq(complaints.id, id))
 
     // Notify member on resolution (only when online)
-    if (status === "resolved" && complaint.member_id && !isUsingLocalDatabase()) {
+    if (
+      status === "resolved" &&
+      complaint.member_id &&
+      !isUsingLocalDatabase()
+    ) {
       const [member] = await smartDb
         .select(members)
         .where(eq(members.id, complaint.member_id))
@@ -131,8 +150,16 @@ export async function updateComplaintStatusAction(
   } catch (err) {
     console.error(err)
     // Check if it's a database connection error (offline)
-    if (err instanceof Error && (err.message.includes('ENOTFOUND') || err.message.includes('ECONNREFUSED') || err.message.includes('getaddrinfo'))) {
-      return { error: "You are offline. Please check your internet connection and try again." }
+    if (
+      err instanceof Error &&
+      (err.message.includes("ENOTFOUND") ||
+        err.message.includes("ECONNREFUSED") ||
+        err.message.includes("getaddrinfo"))
+    ) {
+      return {
+        error:
+          "You are offline. Please check your internet connection and try again.",
+      }
     }
     return { error: "Failed to update complaint status." }
   }
@@ -166,8 +193,16 @@ export async function deleteComplaintAction(
   } catch (err) {
     console.error(err)
     // Check if it's a database connection error (offline)
-    if (err instanceof Error && (err.message.includes('ENOTFOUND') || err.message.includes('ECONNREFUSED') || err.message.includes('getaddrinfo'))) {
-      return { error: "You are offline. Please check your internet connection and try again." }
+    if (
+      err instanceof Error &&
+      (err.message.includes("ENOTFOUND") ||
+        err.message.includes("ECONNREFUSED") ||
+        err.message.includes("getaddrinfo"))
+    ) {
+      return {
+        error:
+          "You are offline. Please check your internet connection and try again.",
+      }
     }
     return { error: "Failed to delete complaint." }
   }
@@ -195,8 +230,16 @@ export async function submitRatingAction(
   } catch (err) {
     console.error(err)
     // Check if it's a database connection error (offline)
-    if (err instanceof Error && (err.message.includes('ENOTFOUND') || err.message.includes('ECONNREFUSED') || err.message.includes('getaddrinfo'))) {
-      return { error: "You are offline. Please check your internet connection and try again." }
+    if (
+      err instanceof Error &&
+      (err.message.includes("ENOTFOUND") ||
+        err.message.includes("ECONNREFUSED") ||
+        err.message.includes("getaddrinfo"))
+    ) {
+      return {
+        error:
+          "You are offline. Please check your internet connection and try again.",
+      }
     }
     return { error: "Failed to submit rating." }
   }
