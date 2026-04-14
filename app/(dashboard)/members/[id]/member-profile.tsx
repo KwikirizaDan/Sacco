@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import { pdf } from "@react-pdf/renderer"
 import { formatUGX, formatDate } from "@/lib/utils/format"
 import { toast } from "sonner"
@@ -110,6 +111,7 @@ export function MemberProfile({
   const [showFineDialog, setShowFineDialog] = useState(false)
   const [showTopUpDialog, setShowTopUpDialog] = useState(false)
   const [selectedLoan, setSelectedLoan] = useState<any>(null)
+  const [imageError, setImageError] = useState(false)
   const [smsMessage, setSmsMessage] = useState("")
   const [loanAmount, setLoanAmount] = useState("")
   const [loanInterestRate, setLoanInterestRate] = useState("")
@@ -390,8 +392,19 @@ export function MemberProfile({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-            <User className="h-8 w-8 text-primary" />
+          <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-primary/10">
+            {member.photo_url && !imageError ? (
+              <Image
+                src={member.photo_url}
+                alt={`${member.full_name} photo`}
+                width={64}
+                height={64}
+                className="h-full w-full object-cover"
+                onError={() => setImageError(true)}
+              />
+            ) : (
+              <User className="h-8 w-8 text-primary" />
+            )}
           </div>
           <div>
             <h1 className="text-2xl font-bold">{member.full_name}</h1>
@@ -1011,7 +1024,7 @@ export function MemberProfile({
                 value={topUpPaymentMethod}
                 onValueChange={(value) => value && setTopUpPaymentMethod(value)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select payment method" />
                 </SelectTrigger>
                 <SelectContent>

@@ -158,9 +158,9 @@ interface ReportDocumentProps {
   sacco?: {
     name: string
     address?: string
-    phone?: string
-    email?: string
-    logoUrl?: string
+    contact_phone?: string
+    contact_email?: string
+    logo_url?: string
     tagline?: string
   }
   dateRange?: string
@@ -179,8 +179,8 @@ export function ReportDocument({
   sacco = {
     name: "My SACCO",
     address: "Kampala, Uganda",
-    phone: "+256 700 000 000",
-    email: "info@sacco.ug",
+    contact_phone: "+256 700 000 000",
+    contact_email: "info@sacco.ug",
   },
   dateRange,
 }: ReportDocumentProps) {
@@ -199,9 +199,9 @@ export function ReportDocument({
         <SaccoHeader
           name={sacco.name}
           address={sacco.address}
-          phone={sacco.phone}
-          email={sacco.email}
-          logoUrl={sacco.logoUrl}
+          phone={sacco.contact_phone}
+          email={sacco.contact_email}
+          logoUrl={sacco.logo_url}
           tagline={sacco.tagline}
         />
 

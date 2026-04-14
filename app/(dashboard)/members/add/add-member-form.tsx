@@ -103,27 +103,83 @@ export function AddMemberForm() {
   )
   const [photoUrl, setPhotoUrl] = useState("")
   const [photoPreview, setPhotoPreview] = useState("")
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
   const formRef = useRef<HTMLFormElement>(null)
+
+  // Simulate upload progress during form submission
+  useEffect(() => {
+    if (uploading) {
+      const interval = setInterval(() => {
+        setUploadProgress((prev) => {
+          if (prev >= 90) return prev
+          return prev + Math.random() * 10
+        })
+      }, 200)
+
+      return () => clearInterval(interval)
+    } else {
+      setUploadProgress(0)
+    }
+  }, [uploading])
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (state.success) {
       toast.success("Member added successfully! Welcome SMS sent.")
+      setUploading(false)
+      setUploadProgress(100)
       router.push("/members")
     }
     if (state.error) {
       toast.error(state.error)
+      setUploading(false)
+      setUploadProgress(0)
     }
   }, [state, router])
 
+  // Update hidden file input when photoFile changes
+  useEffect(() => {
+    if (fileInputRef.current && photoFile) {
+      const dt = new DataTransfer()
+      dt.items.add(photoFile)
+      fileInputRef.current.files = dt.files
+    }
+  }, [photoFile])
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    accept: { "image/*": [] },
+    accept: {
+      "image/jpeg": [".jpg", ".jpeg"],
+      "image/png": [".png"],
+      "image/webp": [".webp"],
+    },
     maxFiles: 1,
-    onDrop: (files) => {
+    maxSize: 5 * 1024 * 1024, // 5MB
+    onDrop: (files, rejectedFiles) => {
+      // Handle rejected files
+      if (rejectedFiles.length > 0) {
+        const rejection = rejectedFiles[0]
+        if (rejection.errors.some((e) => e.code === "file-too-large")) {
+          toast.error("Image must be less than 5MB")
+        } else if (
+          rejection.errors.some((e) => e.code === "file-invalid-type")
+        ) {
+          toast.error("Only JPG, PNG, and WEBP images are allowed")
+        } else {
+          toast.error("Invalid file")
+        }
+        return
+      }
+
       const file = files[0]
       if (!file) return
+
       const preview = URL.createObjectURL(file)
       setPhotoPreview(preview)
       setPhotoUrl(preview)
+      setPhotoFile(file)
+      toast.success("Photo selected successfully!")
     },
   })
 
@@ -132,6 +188,12 @@ export function AddMemberForm() {
   return (
     <form ref={formRef} action={formAction} className="mx-auto max-w-2xl">
       <input type="hidden" name="photo_url" value={photoUrl} />
+      <input
+        type="file"
+        name="photo"
+        style={{ display: "none" }}
+        ref={fileInputRef}
+      />
 
       {/* ── Section 1: Photo ── */}
       <div className="mb-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
@@ -145,12 +207,24 @@ export function AddMemberForm() {
           {/* Avatar preview */}
           <div className="relative flex-shrink-0">
             <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-2xl border-2 border-border bg-muted shadow-inner">
-              {photoPreview ? (
+              {uploading ? (
+                <div className="flex h-full w-full flex-col items-center justify-center">
+                  <Loader2 className="mb-2 h-6 w-6 animate-spin text-primary" />
+                  <div className="mb-1 h-1 w-full rounded-full bg-muted">
+                    <div
+                      className="h-1 rounded-full bg-primary transition-all duration-300"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">Uploading...</p>
+                </div>
+              ) : photoPreview ? (
                 <Image
                   src={photoPreview}
                   alt="Profile preview"
-                  fill
-                  className="object-cover"
+                  width={96}
+                  height={96}
+                  className="h-full w-full object-cover"
                 />
               ) : (
                 <User className="h-9 w-9 text-muted-foreground" />
@@ -323,6 +397,7 @@ export function AddMemberForm() {
               className={inputClass}
             />
           </Field>
+
           <Field id="next_of_kin_phone" label="Phone Number">
             <Input
               id="next_of_kin_phone"
@@ -331,7 +406,7 @@ export function AddMemberForm() {
               className={inputClass}
             />
           </Field>
-          <Field id="next_of_kin_address" label="Address" span>
+          <Field id="next_of_kin_address" label="Address">
             <Input
               id="next_of_kin_address"
               name="next_of_kin_address"

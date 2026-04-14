@@ -182,6 +182,7 @@ interface ApplicationFormProps {
     email?: string
     logoUrl?: string
     tagline?: string
+    primaryColor?: string
   }
 }
 
@@ -202,6 +203,25 @@ export function ApplicationFormDocument({
   member,
   sacco,
 }: ApplicationFormProps) {
+  const primaryColor = sacco.primaryColor || "#16a34a"
+
+  const dynamicStyles = StyleSheet.create({
+    sectionTitle: {
+      ...styles.sectionTitle,
+      color: primaryColor,
+      borderBottomColor: `${primaryColor}20`,
+    },
+    officialBox: {
+      ...styles.officialBox,
+      backgroundColor: `${primaryColor}10`,
+      borderColor: `${primaryColor}40`,
+    },
+    officialTitle: {
+      ...styles.officialTitle,
+      color: primaryColor,
+    },
+  })
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -213,6 +233,7 @@ export function ApplicationFormDocument({
           email={sacco.email}
           logoUrl={sacco.logoUrl}
           tagline={sacco.tagline}
+          primaryColor={sacco.primaryColor}
         />
 
         {/* Title */}
@@ -223,7 +244,9 @@ export function ApplicationFormDocument({
 
         {/* Personal Information */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>1. Personal Information</Text>
+          <Text style={dynamicStyles.sectionTitle}>
+            1. Personal Information
+          </Text>
           <View style={{ flexDirection: "row" }}>
             <View style={{ flex: 1 }}>
               <View style={styles.row}>
@@ -252,7 +275,7 @@ export function ApplicationFormDocument({
 
         {/* Next of Kin */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>2. Next of Kin</Text>
+          <Text style={dynamicStyles.sectionTitle}>2. Next of Kin</Text>
           <View style={styles.row}>
             <Field label="Full Name" value={member.next_of_kin} />
             <Field label="Phone Number" value={member.next_of_kin_phone} />

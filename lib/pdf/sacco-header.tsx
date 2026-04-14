@@ -5,7 +5,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderBottomWidth: 2,
-    borderBottomColor: "#16a34a",
     paddingBottom: 12,
     marginBottom: 16,
   },
@@ -57,6 +56,7 @@ interface SaccoHeaderProps {
   email?: string
   logoUrl?: string
   tagline?: string
+  primaryColor?: string
 }
 
 export function SaccoHeader({
@@ -66,9 +66,21 @@ export function SaccoHeader({
   email,
   logoUrl,
   tagline,
+  primaryColor = "#16a34a",
 }: SaccoHeaderProps) {
+  const dynamicStyles = StyleSheet.create({
+    header: {
+      ...styles.header,
+      borderBottomColor: primaryColor,
+    },
+    tagline: {
+      ...styles.tagline,
+      color: primaryColor,
+    },
+  })
+
   return (
-    <View style={styles.header}>
+    <View style={dynamicStyles.header}>
       {logoUrl ? (
         <Image src={logoUrl} style={styles.logo} />
       ) : (
@@ -85,7 +97,7 @@ export function SaccoHeader({
           {phone && `Tel: ${phone}`} {phone && email && " | "}{" "}
           {email && `Email: ${email}`}
         </Text>
-        {tagline && <Text style={styles.tagline}>{tagline}</Text>}
+        {tagline && <Text style={dynamicStyles.tagline}>{tagline}</Text>}
       </View>
     </View>
   )

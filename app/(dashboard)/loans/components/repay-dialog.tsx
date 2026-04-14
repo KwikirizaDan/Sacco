@@ -98,7 +98,7 @@ export function RepayDialog({
           <div className="space-y-1.5">
             <Label>Payment Method</Label>
             <Select name="payment_method" defaultValue="mobile_money">
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

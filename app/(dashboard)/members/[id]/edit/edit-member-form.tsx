@@ -1,6 +1,6 @@
 "use client"
 
-import { useActionState, useState, useEffect } from "react"
+import { useActionState, useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { useDropzone } from "react-dropzone"
@@ -115,7 +115,21 @@ export function EditMemberForm({ member }: EditMemberFormProps) {
   const router = useRouter()
   const [photoPreview, setPhotoPreview] = useState(member.photo_url ?? "")
   const [photoUrl, setPhotoUrl] = useState(member.photo_url ?? "")
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [imageError, setImageError] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
   const [deleting, setDeleting] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Update hidden file input when photoFile changes
+  useEffect(() => {
+    if (fileInputRef.current && photoFile) {
+      const dt = new DataTransfer()
+      dt.items.add(photoFile)
+      fileInputRef.current.files = dt.files
+    }
+  }, [photoFile])
 
   const boundAction = editMemberAction.bind(null, member.id)
   const [state, formAction, isPending] = useActionState(
@@ -126,22 +140,50 @@ export function EditMemberForm({ member }: EditMemberFormProps) {
   useEffect(() => {
     if (state.success) {
       toast.success("Member updated successfully!")
+      setUploading(false)
+      setUploadProgress(100)
       router.push("/members")
     }
     if (state.error) {
       toast.error(state.error)
+      setUploading(false)
+      setUploadProgress(0)
     }
   }, [state, router])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    accept: { "image/*": [] },
+    accept: {
+      "image/jpeg": [".jpg", ".jpeg"],
+      "image/png": [".png"],
+      "image/webp": [".webp"],
+    },
     maxFiles: 1,
-    onDrop: (files) => {
+    maxSize: 5 * 1024 * 1024, // 5MB
+    onDrop: (files, rejectedFiles) => {
+      // Handle rejected files
+      if (rejectedFiles.length > 0) {
+        const rejection = rejectedFiles[0]
+        if (rejection.errors.some((e) => e.code === "file-too-large")) {
+          toast.error("Image must be less than 5MB")
+        } else if (
+          rejection.errors.some((e) => e.code === "file-invalid-type")
+        ) {
+          toast.error("Only JPG, PNG, and WEBP images are allowed")
+        } else {
+          toast.error("Invalid file")
+        }
+        return
+      }
+
       const file = files[0]
       if (!file) return
+
       const preview = URL.createObjectURL(file)
       setPhotoPreview(preview)
       setPhotoUrl(preview)
+      setPhotoFile(file)
+      setImageError(false)
+      toast.success("Photo updated successfully!")
     },
   })
 
@@ -162,6 +204,12 @@ export function EditMemberForm({ member }: EditMemberFormProps) {
   return (
     <form action={formAction} className="mx-auto max-w-2xl">
       <input type="hidden" name="photo_url" value={photoUrl} />
+      <input
+        type="file"
+        name="photo"
+        style={{ display: "none" }}
+        ref={fileInputRef}
+      />
 
       {/* ── Section 1: Photo ── */}
       <div className="mb-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
@@ -174,18 +222,27 @@ export function EditMemberForm({ member }: EditMemberFormProps) {
         <div className="flex items-center gap-6">
           <div className="relative flex-shrink-0">
             <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-2xl border-2 border-border bg-muted shadow-inner">
-              {photoPreview ? (
+              {uploading ? (
+                <div className="flex flex-col items-center gap-1">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  <p className="text-xs text-muted-foreground">
+                    {uploadProgress}%
+                  </p>
+                </div>
+              ) : photoPreview && !imageError ? (
                 <Image
                   src={photoPreview}
                   alt="Profile"
-                  fill
-                  className="object-cover"
+                  width={96}
+                  height={96}
+                  className="h-full w-full object-cover"
+                  onError={() => setImageError(true)}
                 />
               ) : (
                 <User className="h-9 w-9 text-muted-foreground" />
               )}
             </div>
-            {photoPreview && (
+            {photoPreview && !uploading && (
               <div className="absolute -right-1.5 -bottom-1.5 rounded-full bg-primary p-1 shadow">
                 <Camera className="h-3 w-3 text-primary-foreground" />
               </div>
@@ -350,12 +407,30 @@ export function EditMemberForm({ member }: EditMemberFormProps) {
               className={inputClass}
             />
           </Field>
+          <Field id="next_of_kin_relationship" label="Relationship">
+            <Input
+              id="next_of_kin_relationship"
+              name="next_of_kin_relationship"
+              defaultValue={member.next_of_kin_relationship ?? ""}
+              placeholder="e.g. Spouse, Parent, Sibling"
+              className={inputClass}
+            />
+          </Field>
           <Field id="next_of_kin_phone" label="Phone Number">
             <Input
               id="next_of_kin_phone"
               name="next_of_kin_phone"
               defaultValue={member.next_of_kin_phone ?? ""}
               placeholder="07XX XXX XXX"
+              className={inputClass}
+            />
+          </Field>
+          <Field id="next_of_kin_address" label="Address">
+            <Input
+              id="next_of_kin_address"
+              name="next_of_kin_address"
+              defaultValue={member.next_of_kin_address ?? ""}
+              placeholder="Next of kin address"
               className={inputClass}
             />
           </Field>
@@ -366,17 +441,19 @@ export function EditMemberForm({ member }: EditMemberFormProps) {
       <div className="flex items-center justify-between pt-2 pb-8">
         {/* Delete with confirmation */}
         <AlertDialog>
-          <AlertDialogTrigger
-            type="button"
-            disabled={deleting}
-            className="flex items-center gap-2 text-sm text-destructive transition-colors hover:text-destructive/80 disabled:opacity-50"
-          >
-            {deleting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Trash2 className="h-4 w-4" />
-            )}
-            Delete Member
+          <AlertDialogTrigger asChild>
+            <button
+              type="button"
+              disabled={deleting}
+              className="flex items-center gap-2 text-sm text-destructive transition-colors hover:text-destructive/80 disabled:opacity-50"
+            >
+              {deleting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
+              Delete Member
+            </button>
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>

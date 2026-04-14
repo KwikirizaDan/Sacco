@@ -215,7 +215,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
       </SidebarHeader>
 
       {/* Nav items */}
-      <SidebarContent>
+      <SidebarContent suppressHydrationWarning>
         {mounted ? (
           filteredGroups.map((group) => (
             <SidebarGroup key={group.label}>

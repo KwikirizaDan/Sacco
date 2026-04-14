@@ -1,7 +1,10 @@
 "use client"
 
 import * as React from "react"
-import { AlertDialog as AlertDialogPrimitive } from "@base-ui/react/alert-dialog"
+import {
+  AlertDialog as AlertDialogPrimitive,
+  useAlertDialogTrigger,
+} from "@base-ui/react/alert-dialog"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -10,9 +13,29 @@ function AlertDialog({ ...props }: AlertDialogPrimitive.Root.Props) {
   return <AlertDialogPrimitive.Root data-slot="alert-dialog" {...props} />
 }
 
-function AlertDialogTrigger({ ...props }: AlertDialogPrimitive.Trigger.Props) {
+function AlertDialogTrigger({
+  asChild,
+  children,
+  ...props
+}: AlertDialogPrimitive.Trigger.Props & {
+  asChild?: boolean
+  children?: React.ReactNode
+}) {
+  if (asChild) {
+    return (
+      <AlertDialogPrimitive.Trigger
+        data-slot="alert-dialog-trigger"
+        render={(triggerProps) =>
+          React.cloneElement(children as React.ReactElement, triggerProps)
+        }
+        {...props}
+      />
+    )
+  }
   return (
-    <AlertDialogPrimitive.Trigger data-slot="alert-dialog-trigger" {...props} />
+    <AlertDialogPrimitive.Trigger data-slot="alert-dialog-trigger" {...props}>
+      {children}
+    </AlertDialogPrimitive.Trigger>
   )
 }
 
@@ -165,8 +188,9 @@ function AlertDialogCancel({
     <AlertDialogPrimitive.Close
       data-slot="alert-dialog-cancel"
       className={cn(
-        "inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
-        variant === "outline" && "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+        "inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50",
+        variant === "outline" &&
+          "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
         size === "default" && "h-10 px-4 py-2",
         size === "sm" && "h-9 rounded-md px-3",
         size === "lg" && "h-11 rounded-md px-8",

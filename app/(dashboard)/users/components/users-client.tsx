@@ -183,7 +183,7 @@ function CreateUserDialog({
               </>
             ) : (
               <Select name="role" defaultValue="field_agent">
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -279,7 +279,7 @@ function EditUserDialog({
           <div className="space-y-1.5">
             <Label>Role</Label>
             <Select name="role" defaultValue={user.role}>
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -527,7 +527,7 @@ export function UsersClient({ users, currentUser, canManageUsers }: Props) {
           value={roleFilter}
           onValueChange={(value) => setRoleFilter(value || "all")}
         >
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-full">
             <SelectValue placeholder="All Roles" />
           </SelectTrigger>
           <SelectContent>

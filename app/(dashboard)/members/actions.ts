@@ -1,5 +1,6 @@
 "use server"
 
+import { put } from "@vercel/blob"
 import { smartDb } from "@/lib/db/database-adapter"
 import {
   members,
@@ -67,6 +68,35 @@ export type MemberFormState = {
   fieldErrors?: Record<string, string[]>
 }
 
+// ─── Photo Upload Helper ───────────────────────────────────────────────────────
+
+async function uploadMemberPhoto(
+  photoFile: File,
+  saccoId: string,
+  memberCode: string
+): Promise<string | null> {
+  try {
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"]
+    if (!allowedTypes.includes(photoFile.type)) {
+      throw new Error("Only JPG, PNG, and WEBP images are allowed")
+    }
+
+    if (photoFile.size > 5 * 1024 * 1024) {
+      // 5MB limit
+      throw new Error("Image must be less than 5MB")
+    }
+
+    const ext = photoFile.name.split(".").pop() || "jpg"
+    const filename = `members/${saccoId}/${memberCode}/photo-${Date.now()}.${ext}`
+
+    const blob = await put(filename, photoFile, { access: "public" })
+    return blob.url
+  } catch (error) {
+    console.error("Photo upload failed:", error)
+    return null
+  }
+}
+
 // ─── Add Member ───────────────────────────────────────────────────────────────
 
 export async function addMemberAction(
@@ -79,6 +109,15 @@ export async function addMemberAction(
       return { error: "Unauthorized" }
     }
 
+    const member_code = await generateMemberCode(user.saccoId)
+
+    // Handle photo upload
+    let photo_url = null
+    const photoFile = formData.get("photo") as File | null
+    if (photoFile && photoFile instanceof File && photoFile.size > 0) {
+      photo_url = await uploadMemberPhoto(photoFile, user.saccoId, member_code)
+    }
+
     const raw = {
       full_name: formData.get("full_name") as string,
       email: formData.get("email") as string,
@@ -89,7 +128,7 @@ export async function addMemberAction(
       next_of_kin: formData.get("next_of_kin") as string,
       next_of_kin_phone: formData.get("next_of_kin_phone") as string,
       status: (formData.get("status") as string) || "active",
-      photo_url: formData.get("photo_url") as string,
+      photo_url: photo_url,
     }
 
     const parsed = memberSchema.safeParse(raw)
@@ -99,8 +138,6 @@ export async function addMemberAction(
         fieldErrors: parsed.error.flatten().fieldErrors,
       }
     }
-
-    const member_code = await generateMemberCode(user.saccoId)
 
     await smartDb.insert(members).values({
       member_code,
@@ -142,6 +179,31 @@ export async function editMemberAction(
   formData: FormData
 ): Promise<MemberFormState> {
   try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return { error: "Unauthorized" }
+    }
+
+    // Get existing member to check current photo
+    const [existingMember] = await smartDb
+      .select(members)
+      .where(eq(members.id, id))
+
+    if (!existingMember) {
+      return { error: "Member not found" }
+    }
+
+    // Handle photo upload
+    let photo_url = existingMember.photo_url
+    const photoFile = formData.get("photo") as File | null
+    if (photoFile && photoFile instanceof File && photoFile.size > 0) {
+      photo_url = await uploadMemberPhoto(
+        photoFile,
+        user.saccoId,
+        existingMember.member_code
+      )
+    }
+
     const raw = {
       full_name: formData.get("full_name") as string,
       email: formData.get("email") as string,
@@ -150,9 +212,13 @@ export async function editMemberAction(
       date_of_birth: formData.get("date_of_birth") as string,
       address: formData.get("address") as string,
       next_of_kin: formData.get("next_of_kin") as string,
+      next_of_kin_relationship: formData.get(
+        "next_of_kin_relationship"
+      ) as string,
       next_of_kin_phone: formData.get("next_of_kin_phone") as string,
+      next_of_kin_address: formData.get("next_of_kin_address") as string,
       status: (formData.get("status") as string) || "active",
-      photo_url: formData.get("photo_url") as string,
+      photo_url: photo_url,
     }
 
     const parsed = memberSchema.safeParse(raw)
@@ -177,7 +243,9 @@ export async function editMemberAction(
         date_of_birth: parsed.data.date_of_birth || null,
         address: parsed.data.address || null,
         next_of_kin: parsed.data.next_of_kin || null,
+        next_of_kin_relationship: parsed.data.next_of_kin_relationship || null,
         next_of_kin_phone: parsed.data.next_of_kin_phone || null,
+        next_of_kin_address: parsed.data.next_of_kin_address || null,
         status: parsed.data.status,
         photo_url: parsed.data.photo_url || null,
         updated_at: new Date(),

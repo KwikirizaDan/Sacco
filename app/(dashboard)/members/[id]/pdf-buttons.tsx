@@ -64,7 +64,20 @@ export function PdfButtons({ member }: PdfButtonsProps) {
         }
       }
 
-      const doc = <ApplicationFormDocument member={member} sacco={sacco} />
+      const doc = (
+        <ApplicationFormDocument
+          member={member}
+          sacco={{
+            name: sacco.name,
+            address: sacco.address,
+            phone: sacco.contact_phone,
+            email: sacco.contact_email,
+            logoUrl: sacco.logo_url,
+            tagline: sacco.tagline,
+            primaryColor: sacco.primary_color,
+          }}
+        />
+      )
       const blob = await pdf(doc).toBlob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
