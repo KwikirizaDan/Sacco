@@ -155,14 +155,7 @@ interface ReportDocumentProps {
   transactions?: any[]
   complaints?: any[]
   notifications?: any[]
-  sacco?: {
-    name: string
-    address?: string
-    contact_phone?: string
-    contact_email?: string
-    logo_url?: string
-    tagline?: string
-  }
+  sacco: any
   dateRange?: string
 }
 
@@ -176,12 +169,7 @@ export function ReportDocument({
   transactions = [],
   complaints = [],
   notifications = [],
-  sacco = {
-    name: "My SACCO",
-    address: "Kampala, Uganda",
-    contact_phone: "+256 700 000 000",
-    contact_email: "info@sacco.ug",
-  },
+  sacco,
   dateRange,
 }: ReportDocumentProps) {
   const titles: Record<string, string> = {
@@ -203,6 +191,7 @@ export function ReportDocument({
           email={sacco.contact_email}
           logoUrl={sacco.logo_url}
           tagline={sacco.tagline}
+          primaryColor={sacco.primary_color}
         />
 
         <Text style={styles.title}>{titles[type]}</Text>
