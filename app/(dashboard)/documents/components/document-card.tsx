@@ -36,8 +36,9 @@ import { deleteDocumentAction } from "../actions"
 import { toast } from "sonner"
 import { PreviewDialog } from "./preview-dialog"
 import { typeLabels, typeColors } from "./documents-client"
+import { type Document } from "./documents-table"
 
-export function DocumentCard({ doc }: { doc: any }) {
+export function DocumentCard({ doc }: { doc: Document }) {
   const [previewOpen, setPreviewOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -59,10 +60,10 @@ export function DocumentCard({ doc }: { doc: any }) {
 
   return (
     <>
-      <Card className="group hover:shadow-md transition-all duration-200 overflow-hidden">
+      <Card className="group overflow-hidden transition-all duration-200 hover:shadow-md">
         {/* Preview Area */}
         <div
-          className="relative h-36 bg-muted/30 flex items-center justify-center cursor-pointer border-b"
+          className="relative flex h-36 cursor-pointer items-center justify-center border-b bg-muted/30"
           onClick={() => setPreviewOpen(true)}
         >
           {isImage ? (
@@ -74,14 +75,14 @@ export function DocumentCard({ doc }: { doc: any }) {
           ) : (
             <div className="flex flex-col items-center gap-2 text-muted-foreground">
               <FileText className="h-12 w-12 opacity-40" />
-              <span className="text-xs font-mono uppercase">
+              <span className="font-mono text-xs uppercase">
                 {doc.file_name?.split(".").pop()}
               </span>
             </div>
           )}
 
           {/* Hover Overlay */}
-          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+          <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
             <Button
               size="sm"
               variant="secondary"
@@ -90,26 +91,31 @@ export function DocumentCard({ doc }: { doc: any }) {
                 setPreviewOpen(true)
               }}
             >
-              <Eye className="h-3.5 w-3.5 mr-1" />
+              <Eye className="mr-1 h-3.5 w-3.5" />
               Preview
             </Button>
           </div>
 
           {/* Type Badge */}
           <div className="absolute top-2 left-2">
-            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${typeColors[doc.type] ?? ""}`}>
+            <span
+              className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${typeColors[doc.type] ?? ""}`}
+            >
               {typeLabels[doc.type] ?? doc.type}
             </span>
           </div>
 
           {/* Actions Menu */}
-          <div className="absolute top-2 right-2" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="absolute top-2 right-2"
+            onClick={(e) => e.stopPropagation()}
+          >
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="secondary"
                   size="icon"
-                  className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
                 >
                   <MoreVertical className="h-3.5 w-3.5" />
                 </Button>
@@ -119,7 +125,9 @@ export function DocumentCard({ doc }: { doc: any }) {
                   <Eye className="mr-2 h-4 w-4" />
                   Preview
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => window.open(doc.blob_url, "_blank")}>
+                <DropdownMenuItem
+                  onClick={() => window.open(doc.blob_url, "_blank")}
+                >
                   <Download className="mr-2 h-4 w-4" />
                   Download
                 </DropdownMenuItem>
@@ -143,15 +151,15 @@ export function DocumentCard({ doc }: { doc: any }) {
         </div>
 
         {/* Card Info */}
-        <CardContent className="pt-3 pb-3 px-3 space-y-2">
-          <p className="text-sm font-medium truncate" title={doc.file_name}>
+        <CardContent className="space-y-2 px-3 pt-3 pb-3">
+          <p className="truncate text-sm font-medium" title={doc.file_name}>
             {doc.file_name}
           </p>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <User className="h-3 w-3 shrink-0" />
             <span className="truncate">{doc.member_name ?? "—"}</span>
             <span className="text-muted-foreground/40">·</span>
-            <span className="font-mono shrink-0">{doc.member_code}</span>
+            <span className="shrink-0 font-mono">{doc.member_code}</span>
           </div>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Calendar className="h-3 w-3 shrink-0" />
@@ -161,19 +169,19 @@ export function DocumentCard({ doc }: { doc: any }) {
             <Button
               variant="outline"
               size="sm"
-              className="flex-1 h-7 text-xs"
+              className="h-7 flex-1 text-xs"
               onClick={() => setPreviewOpen(true)}
             >
-              <Eye className="h-3 w-3 mr-1" />
+              <Eye className="mr-1 h-3 w-3" />
               View
             </Button>
             <Button
               variant="outline"
               size="sm"
-              className="flex-1 h-7 text-xs"
+              className="h-7 flex-1 text-xs"
               onClick={() => window.open(doc.blob_url, "_blank")}
             >
-              <Download className="h-2 w-2 mr-2" />
+              <Download className="mr-2 h-2 w-2" />
               Download
             </Button>
           </div>
@@ -193,8 +201,8 @@ export function DocumentCard({ doc }: { doc: any }) {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Document?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete <strong>{doc.file_name}</strong> from storage.
-              This action cannot be undone.
+              This will permanently delete <strong>{doc.file_name}</strong> from
+              storage. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

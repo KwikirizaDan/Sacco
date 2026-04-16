@@ -22,10 +22,7 @@ import {
   FileText,
 } from "lucide-react"
 import { formatDate } from "@/lib/utils/format"
-import {
-  updateComplaintStatusAction,
-  submitRatingAction,
-} from "../actions"
+import { updateComplaintStatusAction, submitRatingAction } from "../actions"
 import { toast } from "sonner"
 import { ResolveDialog } from "./resolve-dialog"
 import {
@@ -34,13 +31,14 @@ import {
   categoryLabels,
   categoryColors,
 } from "./complaints-client"
+import { type Complaint } from "./complaints-table"
 
 export function ComplaintDetailDialog({
   complaint,
   open,
   onClose,
 }: {
-  complaint: any
+  complaint: Complaint
   open: boolean
   onClose: () => void
 }) {
@@ -68,7 +66,7 @@ export function ComplaintDetailDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onClose}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <MessageSquare className="h-5 w-5" />
@@ -77,19 +75,26 @@ export function ComplaintDetailDialog({
           </DialogHeader>
 
           <div className="space-y-4">
-
             {/* Header Info */}
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-mono text-sm text-muted-foreground bg-muted px-2 py-1 rounded">
+              <span className="rounded bg-muted px-2 py-1 font-mono text-sm text-muted-foreground">
                 {complaint.complaint_ref ?? "No Ref"}
               </span>
-              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[complaint.status]}`}>
-                {complaint.status === "in_progress" ? "In Progress" : complaint.status}
+              <span
+                className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${statusColors[complaint.status || "open"]}`}
+              >
+                {complaint.status === "in_progress"
+                  ? "In Progress"
+                  : complaint.status}
               </span>
-              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${priorityColors[complaint.priority ?? "normal"]}`}>
+              <span
+                className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${priorityColors[complaint.priority ?? "normal"]}`}
+              >
                 {complaint.priority ?? "normal"} priority
               </span>
-              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${categoryColors[complaint.category ?? "general"]}`}>
+              <span
+                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${categoryColors[complaint.category ?? "general"]}`}
+              >
                 <Tag className="h-3 w-3" />
                 {categoryLabels[complaint.category ?? "general"]}
               </span>
@@ -103,14 +108,16 @@ export function ComplaintDetailDialog({
             {/* Member Info */}
             <Card>
               <CardContent className="pt-4 pb-3">
-                <div className="flex items-center gap-2 mb-2">
+                <div className="mb-2 flex items-center gap-2">
                   <User className="h-4 w-4 text-muted-foreground" />
                   <p className="text-sm font-semibold">Member</p>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
                     <p className="text-xs text-muted-foreground">Name</p>
-                    <p className="font-medium">{complaint.member_name ?? "Anonymous"}</p>
+                    <p className="font-medium">
+                      {complaint.member_name ?? "Anonymous"}
+                    </p>
                   </div>
                   {complaint.member_code && (
                     <div>
@@ -135,17 +142,21 @@ export function ComplaintDetailDialog({
             {/* Complaint Body */}
             <Card>
               <CardContent className="pt-4 pb-3">
-                <div className="flex items-center gap-2 mb-3">
+                <div className="mb-3 flex items-center gap-2">
                   <FileText className="h-4 w-4 text-muted-foreground" />
                   <p className="text-sm font-semibold">Complaint Description</p>
                 </div>
-                <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+                <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground">
                   {complaint.body}
                 </p>
                 {complaint.notes && (
-                  <div className="mt-3 pt-3 border-t">
-                    <p className="text-xs text-muted-foreground mb-1">Internal Notes</p>
-                    <p className="text-sm text-muted-foreground">{complaint.notes}</p>
+                  <div className="mt-3 border-t pt-3">
+                    <p className="mb-1 text-xs text-muted-foreground">
+                      Internal Notes
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {complaint.notes}
+                    </p>
                   </div>
                 )}
               </CardContent>
@@ -153,20 +164,22 @@ export function ComplaintDetailDialog({
 
             {/* Resolution */}
             {complaint.resolution_notes && (
-              <Card className="border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/20">
+              <Card className="border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/20">
                 <CardContent className="pt-4 pb-3">
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="mb-2 flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-600" />
                     <p className="text-sm font-semibold text-green-700 dark:text-green-400">
                       Resolution
                     </p>
                     {complaint.resolved_at && (
-                      <span className="text-xs text-muted-foreground ml-auto">
+                      <span className="ml-auto text-xs text-muted-foreground">
                         {formatDate(complaint.resolved_at)}
                       </span>
                     )}
                   </div>
-                  <p className="text-sm leading-relaxed">{complaint.resolution_notes}</p>
+                  <p className="text-sm leading-relaxed">
+                    {complaint.resolution_notes}
+                  </p>
                 </CardContent>
               </Card>
             )}
@@ -174,26 +187,26 @@ export function ComplaintDetailDialog({
             {/* Timeline */}
             <Card>
               <CardContent className="pt-4 pb-3">
-                <div className="flex items-center gap-2 mb-3">
+                <div className="mb-3 flex items-center gap-2">
                   <Clock className="h-4 w-4 text-muted-foreground" />
                   <p className="text-sm font-semibold">Timeline</p>
                 </div>
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
-                    <div className="h-2.5 w-2.5 rounded-full bg-yellow-500 shrink-0" />
+                    <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-yellow-500" />
                     <div className="text-sm">
                       <span className="font-medium">Submitted</span>
-                      <span className="text-muted-foreground ml-2">
+                      <span className="ml-2 text-muted-foreground">
                         {formatDate(complaint.created_at)}
                       </span>
                     </div>
                   </div>
                   {complaint.status === "in_progress" && (
                     <div className="flex items-center gap-3">
-                      <div className="h-2.5 w-2.5 rounded-full bg-blue-500 shrink-0" />
+                      <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-blue-500" />
                       <div className="text-sm">
                         <span className="font-medium">In Progress</span>
-                        <span className="text-muted-foreground ml-2">
+                        <span className="ml-2 text-muted-foreground">
                           {formatDate(complaint.updated_at)}
                         </span>
                       </div>
@@ -201,10 +214,10 @@ export function ComplaintDetailDialog({
                   )}
                   {complaint.resolved_at && (
                     <div className="flex items-center gap-3">
-                      <div className="h-2.5 w-2.5 rounded-full bg-green-500 shrink-0" />
+                      <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-green-500" />
                       <div className="text-sm">
                         <span className="font-medium">Resolved</span>
-                        <span className="text-muted-foreground ml-2">
+                        <span className="ml-2 text-muted-foreground">
                           {formatDate(complaint.resolved_at)}
                         </span>
                       </div>
@@ -218,11 +231,11 @@ export function ComplaintDetailDialog({
             {complaint.status === "resolved" && (
               <Card>
                 <CardContent className="pt-4 pb-3">
-                  <div className="flex items-center gap-2 mb-3">
+                  <div className="mb-3 flex items-center gap-2">
                     <Star className="h-4 w-4 text-yellow-500" />
                     <p className="text-sm font-semibold">Satisfaction Rating</p>
                   </div>
-                  <div className="flex items-center gap-2 mb-3">
+                  <div className="mb-3 flex items-center gap-2">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <button
                         key={star}
@@ -235,20 +248,20 @@ export function ComplaintDetailDialog({
                         <Star
                           className={`h-7 w-7 transition-colors ${
                             star <= (hoveredRating || rating)
-                              ? "text-yellow-400 fill-yellow-400"
+                              ? "fill-yellow-400 text-yellow-400"
                               : "text-muted-foreground/30"
                           }`}
                         />
                       </button>
                     ))}
                     {rating > 0 && (
-                      <span className="text-sm text-muted-foreground ml-2">
+                      <span className="ml-2 text-sm text-muted-foreground">
                         {rating}/5
                       </span>
                     )}
                   </div>
                   <textarea
-                    className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="min-h-[80px] w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                     placeholder="Optional feedback..."
                     value={feedback}
                     onChange={(e) => setFeedback(e.target.value)}
@@ -273,16 +286,16 @@ export function ComplaintDetailDialog({
                   className="border-blue-300 text-blue-600 hover:bg-blue-50 dark:border-blue-700 dark:text-blue-400"
                   onClick={handleMarkInProgress}
                 >
-                  <PlayCircle className="h-4 w-4 mr-2" />
+                  <PlayCircle className="mr-2 h-4 w-4" />
                   Mark In Progress
                 </Button>
               )}
               {complaint.status !== "resolved" && (
                 <Button
-                  className="bg-green-600 hover:bg-green-700 text-white"
+                  className="bg-green-600 text-white hover:bg-green-700"
                   onClick={() => setResolveOpen(true)}
                 >
-                  <CheckCircle className="h-4 w-4 mr-2" />
+                  <CheckCircle className="mr-2 h-4 w-4" />
                   Resolve Complaint
                 </Button>
               )}

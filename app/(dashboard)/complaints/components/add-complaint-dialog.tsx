@@ -2,7 +2,10 @@
 
 import { useActionState, useEffect } from "react"
 import { toast } from "sonner"
-import { addComplaintAction } from "../actions"
+import { addComplaintAction, type ComplaintFormState } from "../actions"
+import { type Member } from "@/db/schema"
+
+type MemberSelect = Pick<Member, "id" | "full_name" | "member_code" | "phone">
 import {
   Dialog,
   DialogContent,
@@ -22,7 +25,7 @@ import {
 } from "@/components/ui/select"
 import { Loader2, MessageSquare } from "lucide-react"
 
-const initialState: { success?: boolean; error?: string; fieldErrors?: Record<string, string[]> } = {}
+const initialState: ComplaintFormState = {}
 
 export function AddComplaintDialog({
   open,
@@ -31,7 +34,7 @@ export function AddComplaintDialog({
 }: {
   open: boolean
   onClose: () => void
-  members: any[]
+  members: MemberSelect[]
 }) {
   const [state, formAction, isPending] = useActionState(
     addComplaintAction,
@@ -46,12 +49,11 @@ export function AddComplaintDialog({
     if (state.error) toast.error(state.error)
   }, [state, onClose])
 
-  const fieldError = (field: string) =>
-    (state as any).fieldErrors?.[field]?.[0]
+  const fieldError = (field: string) => state.fieldErrors?.[field]?.[0]
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5" />
@@ -63,7 +65,6 @@ export function AddComplaintDialog({
         </DialogHeader>
 
         <form action={formAction} className="space-y-4">
-
           {/* Member */}
           <div className="space-y-1.5">
             <Label>Member (Optional)</Label>
@@ -90,7 +91,9 @@ export function AddComplaintDialog({
               placeholder="Brief subject of the complaint"
             />
             {fieldError("subject") && (
-              <p className="text-sm text-destructive">{fieldError("subject")}</p>
+              <p className="text-sm text-destructive">
+                {fieldError("subject")}
+              </p>
             )}
           </div>
 
@@ -135,7 +138,7 @@ export function AddComplaintDialog({
               id="body"
               name="body"
               rows={4}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
               placeholder="Describe the complaint in detail..."
             />
             {fieldError("body") && (
@@ -153,15 +156,15 @@ export function AddComplaintDialog({
             />
           </div>
 
-          <div className="flex gap-2 justify-end pt-2">
+          <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
             <Button type="submit" disabled={isPending}>
               {isPending ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
-                <MessageSquare className="h-4 w-4 mr-2" />
+                <MessageSquare className="mr-2 h-4 w-4" />
               )}
               Submit Complaint
             </Button>

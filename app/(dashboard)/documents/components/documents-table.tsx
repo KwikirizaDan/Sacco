@@ -52,9 +52,22 @@ import { toast } from "sonner"
 import { PreviewDialog } from "./preview-dialog"
 import { typeLabels, typeColors } from "./documents-client"
 
-export function DocumentsTable({ documents }: { documents: any[] }) {
-  const [previewDoc, setPreviewDoc] = useState<any>(null)
-  const [deleteDoc, setDeleteDoc] = useState<any>(null)
+export interface Document {
+  id: string
+  sacco_id: string
+  created_at: Date | null
+  member_id: string
+  loan_id: string | null
+  type: string
+  file_name: string
+  blob_url: string
+  member_name: string | null
+  member_code: string | null
+}
+
+export function DocumentsTable({ documents }: { documents: Document[] }) {
+  const [previewDoc, setPreviewDoc] = useState<Document | null>(null)
+  const [deleteDoc, setDeleteDoc] = useState<Document | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [sorting, setSorting] = useState<SortingState>([])
   const [pagination, setPagination] = useState({
@@ -91,7 +104,7 @@ export function DocumentsTable({ documents }: { documents: any[] }) {
 
   return (
     <>
-      <div className="rounded-lg border overflow-hidden">
+      <div className="overflow-hidden rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
@@ -105,16 +118,18 @@ export function DocumentsTable({ documents }: { documents: any[] }) {
           <TableBody>
             {table.getRowModel().rows.map((row) => {
               const doc = row.original
-              const isImage = /\.(jpg|jpeg|png|webp)$/i.test(doc.file_name ?? "")
+              const isImage = /\.(jpg|jpeg|png|webp)$/i.test(
+                doc.file_name ?? ""
+              )
               return (
                 <TableRow
                   key={doc.id}
-                  className="hover:bg-muted/30 cursor-pointer"
+                  className="cursor-pointer hover:bg-muted/30"
                   onClick={() => setPreviewDoc(doc)}
                 >
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-lg border bg-muted overflow-hidden flex items-center justify-center shrink-0">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
                         {isImage ? (
                           <img
                             src={doc.blob_url}
@@ -126,7 +141,7 @@ export function DocumentsTable({ documents }: { documents: any[] }) {
                         )}
                       </div>
                       <div>
-                        <p className="text-sm font-medium truncate max-w-[200px]">
+                        <p className="max-w-[200px] truncate text-sm font-medium">
                           {doc.file_name}
                         </p>
                         <p className="text-xs text-muted-foreground uppercase">
@@ -136,14 +151,22 @@ export function DocumentsTable({ documents }: { documents: any[] }) {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={doc.type === "loan_agreement" ? "default" : doc.type === "member_document" ? "secondary" : "outline"}>
+                    <Badge
+                      variant={
+                        doc.type === "loan_agreement"
+                          ? "default"
+                          : doc.type === "member_document"
+                            ? "secondary"
+                            : "outline"
+                      }
+                    >
                       {typeLabels[doc.type] ?? doc.type}
                     </Badge>
                   </TableCell>
                   <TableCell>
                     <div>
                       <p className="text-sm font-medium">{doc.member_name}</p>
-                      <p className="text-xs text-muted-foreground font-mono">
+                      <p className="font-mono text-xs text-muted-foreground">
                         {doc.member_code}
                       </p>
                     </div>
@@ -151,7 +174,10 @@ export function DocumentsTable({ documents }: { documents: any[] }) {
                   <TableCell className="text-sm text-muted-foreground">
                     {formatDate(doc.created_at)}
                   </TableCell>
-                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                  <TableCell
+                    className="text-right"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <DropdownMenu>
                       <DropdownMenuTrigger>
                         <Button variant="ghost" size="icon">
@@ -163,11 +189,15 @@ export function DocumentsTable({ documents }: { documents: any[] }) {
                           <Eye className="mr-2 h-4 w-4" />
                           Preview
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => window.open(doc.blob_url, "_blank")}>
+                        <DropdownMenuItem
+                          onClick={() => window.open(doc.blob_url, "_blank")}
+                        >
                           <Download className="mr-2 h-4 w-4" />
                           Download
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => window.open(doc.blob_url, "_blank")}>
+                        <DropdownMenuItem
+                          onClick={() => window.open(doc.blob_url, "_blank")}
+                        >
                           <ExternalLink className="mr-2 h-4 w-4" />
                           Open in New Tab
                         </DropdownMenuItem>
@@ -205,8 +235,8 @@ export function DocumentsTable({ documents }: { documents: any[] }) {
             <AlertDialogTitle>Delete Document?</AlertDialogTitle>
             <AlertDialogDescription>
               This will permanently delete{" "}
-              <strong>{deleteDoc?.file_name}</strong> from storage.
-              This cannot be undone.
+              <strong>{deleteDoc?.file_name}</strong> from storage. This cannot
+              be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -73,7 +73,7 @@ import {
 import { formatUGX, formatDate } from "@/lib/utils/format"
 import { ReportPdfButton } from "./report-pdf"
 import { DonutChart } from "@/app/(dashboard)/components/donut-chart"
-import * as XLSX from "xlsx"
+import ExcelJS from "exceljs"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
@@ -358,14 +358,20 @@ export function ReportsClient({
       .slice(0, 10)
   }, [filteredSavings])
 
-  const handleExcelExport = (
+  const handleExcelExport = async (
     type: string,
     data: any[],
     columns: Record<string, string>
   ) => {
+    const workbook = new ExcelJS.Workbook()
+    const worksheet = workbook.addWorksheet(type)
+
+    const columnHeaders = Object.values(columns)
+    worksheet.columns = columnHeaders.map((header) => ({ header, width: 15 }))
+
     const formatted = data.map((item) => {
-      const obj: Record<string, any> = {}
-      Object.entries(columns).forEach(([key, label]) => {
+      const row: any[] = []
+      Object.keys(columns).forEach((key) => {
         let value = item[key]
         if (
           key.includes("amount") ||
@@ -376,14 +382,24 @@ export function ReportsClient({
         } else if (key.includes("date") || key.includes("_at")) {
           value = value ? formatDate(value) : "—"
         }
-        obj[label] = value ?? "—"
+        row.push(value ?? "—")
       })
-      return obj
+      return row
     })
-    const ws = XLSX.utils.json_to_sheet(formatted)
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, type)
-    XLSX.writeFile(wb, `sacco-${type}-report.xlsx`)
+
+    worksheet.addRows(formatted)
+
+    const buffer = await workbook.xlsx.writeBuffer()
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `sacco-${type}-report.xlsx`
+    a.click()
+    window.URL.revokeObjectURL(url)
+
     toast.success(`${type} report exported to Excel`)
   }
 

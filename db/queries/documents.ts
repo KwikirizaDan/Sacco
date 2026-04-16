@@ -6,6 +6,7 @@ export async function getAllDocuments(saccoId: string) {
   return await db
     .select({
       id: documents.id,
+      sacco_id: documents.sacco_id,
       type: documents.type,
       file_name: documents.file_name,
       blob_url: documents.blob_url,

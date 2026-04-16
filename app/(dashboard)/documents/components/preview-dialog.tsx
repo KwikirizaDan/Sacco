@@ -11,9 +11,10 @@ import { Badge } from "@/components/ui/badge"
 import { Download, ExternalLink, FileText, User, Calendar } from "lucide-react"
 import { formatDate } from "@/lib/utils/format"
 import { typeLabels, typeColors } from "./documents-client"
+import { type Document } from "./documents-table"
 
 interface PreviewDialogProps {
-  doc: any
+  doc: Document
   open: boolean
   onClose: () => void
 }
@@ -24,13 +25,15 @@ export function PreviewDialog({ doc, open, onClose }: PreviewDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="flex max-h-[90vh] max-w-6xl flex-col overflow-hidden">
         <DialogHeader>
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-1">
               <DialogTitle className="text-base">{doc.file_name}</DialogTitle>
-              <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${typeColors[doc.type] ?? ""}`}>
+              <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                <span
+                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${typeColors[doc.type] ?? ""}`}
+                >
                   {typeLabels[doc.type] ?? doc.type}
                 </span>
                 <div className="flex items-center gap-1">
@@ -43,20 +46,20 @@ export function PreviewDialog({ doc, open, onClose }: PreviewDialogProps) {
                 </div>
               </div>
             </div>
-            <div className="flex gap-2 shrink-0">
+            <div className="flex shrink-0 gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => window.open(doc.blob_url, "_blank")}
               >
-                <ExternalLink className="h-4 w-4 mr-2" />
+                <ExternalLink className="mr-2 h-4 w-4" />
                 Open
               </Button>
               <Button
                 size="sm"
                 onClick={() => window.open(doc.blob_url, "_blank")}
               >
-                <Download className="h-4 w-4 mr-2" />
+                <Download className="mr-2 h-4 w-4" />
                 Download
               </Button>
             </div>
@@ -64,27 +67,29 @@ export function PreviewDialog({ doc, open, onClose }: PreviewDialogProps) {
         </DialogHeader>
 
         {/* Preview Area */}
-        <div className="flex-1 overflow-auto rounded-lg border bg-muted/20 min-h-0">
+        <div className="min-h-0 flex-1 overflow-auto rounded-lg border bg-muted/20">
           {isImage && (
             <img
               src={doc.blob_url}
               alt={doc.file_name}
-              className="w-full h-auto max-h-[65vh] object-contain"
+              className="h-auto max-h-[65vh] w-full object-contain"
             />
           )}
           {isPdf && (
             <iframe
               src={`${doc.blob_url}#toolbar=1`}
-              className="w-full h-[65vh]"
+              className="h-[65vh] w-full"
               title={doc.file_name}
             />
           )}
           {!isImage && !isPdf && (
-            <div className="flex flex-col items-center justify-center h-64 text-muted-foreground gap-3">
+            <div className="flex h-64 flex-col items-center justify-center gap-3 text-muted-foreground">
               <FileText className="h-16 w-16 opacity-30" />
-              <p className="text-sm">Preview not available for this file type</p>
+              <p className="text-sm">
+                Preview not available for this file type
+              </p>
               <Button onClick={() => window.open(doc.blob_url, "_blank")}>
-                <Download className="h-4 w-4 mr-2" />
+                <Download className="mr-2 h-4 w-4" />
                 Download to View
               </Button>
             </div>

@@ -51,13 +51,19 @@ import {
 } from "@/components/ui/alert-dialog"
 import { formatDate } from "@/lib/utils/format"
 
-const statusVariant: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+const statusVariant: Record<
+  string,
+  "default" | "secondary" | "destructive" | "outline"
+> = {
   open: "secondary",
   in_progress: "default",
   resolved: "outline",
 }
 
-const categoryVariant: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+const categoryVariant: Record<
+  string,
+  "default" | "secondary" | "destructive" | "outline"
+> = {
   general: "outline",
   loan: "default",
   savings: "secondary",
@@ -66,14 +72,17 @@ const categoryVariant: Record<string, "default" | "secondary" | "destructive" | 
   other: "outline",
 }
 
-const priorityVariant: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+const priorityVariant: Record<
+  string,
+  "default" | "secondary" | "destructive" | "outline"
+> = {
   low: "outline",
   normal: "secondary",
   high: "destructive",
   urgent: "destructive",
 }
 
-interface Complaint {
+export interface Complaint {
   id: string
   sacco_id: string
   member_id: string | null
@@ -94,6 +103,7 @@ interface Complaint {
   updated_at: Date | null
   member_name: string | null
   member_code: string | null
+  member_phone: string | null
 }
 
 interface ComplaintsTableProps {
@@ -104,7 +114,9 @@ export function ComplaintsTable({ complaints }: ComplaintsTableProps) {
   const router = useRouter()
   const [sorting, setSorting] = useState<SortingState>([])
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [complaintToDelete, setComplaintToDelete] = useState<string | null>(null)
+  const [complaintToDelete, setComplaintToDelete] = useState<string | null>(
+    null
+  )
 
   const columns: ColumnDef<Complaint>[] = [
     {
@@ -113,7 +125,7 @@ export function ComplaintsTable({ complaints }: ComplaintsTableProps) {
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="p-0 h-auto font-semibold hover:bg-transparent"
+          className="h-auto p-0 font-semibold hover:bg-transparent"
         >
           Ref
           <ArrowUpDown className="ml-2 h-4 w-4" />
@@ -129,7 +141,7 @@ export function ComplaintsTable({ complaints }: ComplaintsTableProps) {
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="p-0 h-auto font-semibold hover:bg-transparent"
+          className="h-auto p-0 font-semibold hover:bg-transparent"
         >
           Subject
           <ArrowUpDown className="ml-2 h-4 w-4" />
@@ -138,7 +150,7 @@ export function ComplaintsTable({ complaints }: ComplaintsTableProps) {
       cell: ({ row }) => (
         <div>
           <p className="font-medium">{row.original.subject}</p>
-          <p className="text-sm text-muted-foreground line-clamp-1">
+          <p className="line-clamp-1 text-sm text-muted-foreground">
             {row.original.body}
           </p>
         </div>
@@ -150,7 +162,7 @@ export function ComplaintsTable({ complaints }: ComplaintsTableProps) {
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="p-0 h-auto font-semibold hover:bg-transparent"
+          className="h-auto p-0 font-semibold hover:bg-transparent"
         >
           Member
           <ArrowUpDown className="ml-2 h-4 w-4" />
@@ -160,7 +172,9 @@ export function ComplaintsTable({ complaints }: ComplaintsTableProps) {
         <div className="flex items-center gap-2">
           <User className="h-4 w-4 text-muted-foreground" />
           <div>
-            <p className="font-medium">{row.original.member_name || "Unknown"}</p>
+            <p className="font-medium">
+              {row.original.member_name || "Unknown"}
+            </p>
             <p className="text-sm text-muted-foreground">
               {row.original.member_code || "N/A"}
             </p>
@@ -172,7 +186,15 @@ export function ComplaintsTable({ complaints }: ComplaintsTableProps) {
       accessorKey: "category",
       header: "Category",
       cell: ({ row }) => (
-        <Badge variant={row.original.category === "loan" ? "default" : row.original.category === "savings" ? "secondary" : "outline"}>
+        <Badge
+          variant={
+            row.original.category === "loan"
+              ? "default"
+              : row.original.category === "savings"
+                ? "secondary"
+                : "outline"
+          }
+        >
           {row.original.category || "general"}
         </Badge>
       ),
@@ -181,7 +203,15 @@ export function ComplaintsTable({ complaints }: ComplaintsTableProps) {
       accessorKey: "priority",
       header: "Priority",
       cell: ({ row }) => (
-        <Badge variant={row.original.priority === "urgent" ? "destructive" : row.original.priority === "high" ? "destructive" : "secondary"}>
+        <Badge
+          variant={
+            row.original.priority === "urgent"
+              ? "destructive"
+              : row.original.priority === "high"
+                ? "destructive"
+                : "secondary"
+          }
+        >
           {row.original.priority || "normal"}
         </Badge>
       ),
@@ -190,10 +220,18 @@ export function ComplaintsTable({ complaints }: ComplaintsTableProps) {
       accessorKey: "status",
       header: "Status",
       cell: ({ row }) => (
-        <Badge variant={row.original.status === "resolved" ? "outline" : row.original.status === "in_progress" ? "default" : "secondary"}>
+        <Badge
+          variant={
+            row.original.status === "resolved"
+              ? "outline"
+              : row.original.status === "in_progress"
+                ? "default"
+                : "secondary"
+          }
+        >
           {row.original.status || "open"}
         </Badge>
-      )
+      ),
     },
     {
       accessorKey: "created_at",
@@ -201,7 +239,7 @@ export function ComplaintsTable({ complaints }: ComplaintsTableProps) {
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="p-0 h-auto font-semibold hover:bg-transparent"
+          className="h-auto p-0 font-semibold hover:bg-transparent"
         >
           Created
           <ArrowUpDown className="ml-2 h-4 w-4" />
@@ -210,23 +248,24 @@ export function ComplaintsTable({ complaints }: ComplaintsTableProps) {
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
           <Calendar className="h-4 w-4 text-muted-foreground" />
-          {row.original.created_at ? formatDate(row.original.created_at) : "N/A"}
+          {row.original.created_at
+            ? formatDate(row.original.created_at)
+            : "N/A"}
         </div>
       ),
     },
     {
       accessorKey: "resolved_at",
       header: "Resolved",
-      cell: ({ row }) => (
-        row.original.resolved_at ? formatDate(row.original.resolved_at) : "—"
-      ),
+      cell: ({ row }) =>
+        row.original.resolved_at ? formatDate(row.original.resolved_at) : "—",
     },
     {
       id: "actions",
       header: "Actions",
       cell: ({ row }) => (
         <DropdownMenu>
-          <DropdownMenuTrigger className="rounded-md hover:bg-accent hover:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground p-1">
+          <DropdownMenuTrigger className="rounded-md p-1 hover:bg-accent hover:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground">
             <MoreHorizontal className="h-4 w-4" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
@@ -282,16 +321,16 @@ export function ComplaintsTable({ complaints }: ComplaintsTableProps) {
 
   if (complaints.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-muted-foreground border rounded-lg">
+      <div className="flex flex-col items-center justify-center rounded-lg border py-20 text-muted-foreground">
         <p className="text-lg font-medium">No complaints found</p>
-        <p className="text-sm mt-1">Add your first complaint to get started</p>
+        <p className="mt-1 text-sm">Add your first complaint to get started</p>
       </div>
     )
   }
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border overflow-hidden">
+      <div className="overflow-hidden rounded-lg border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((hg) => (
@@ -316,10 +355,7 @@ export function ComplaintsTable({ complaints }: ComplaintsTableProps) {
               >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id}>
-                    {flexRender(
-                      cell.column.columnDef.cell,
-                      cell.getContext()
-                    )}
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>
                 ))}
               </TableRow>
@@ -333,7 +369,8 @@ export function ComplaintsTable({ complaints }: ComplaintsTableProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Complaint</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this complaint? This action cannot be undone.
+              Are you sure you want to delete this complaint? This action cannot
+              be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

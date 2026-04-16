@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -27,10 +27,14 @@ import {
 } from "lucide-react"
 import { AddComplaintDialog } from "./add-complaint-dialog"
 import { ComplaintCard } from "./complaint-card"
+import { type Complaint } from "./complaints-table"
+import { type Member } from "@/db/schema"
+
+type MemberSelect = Pick<Member, "id" | "full_name" | "member_code" | "phone">
 
 interface ComplaintsClientProps {
-  complaints: any[]
-  members: any[]
+  complaints: Complaint[]
+  members: MemberSelect[]
   stats: {
     total: number
     open: number
@@ -48,8 +52,10 @@ export const priorityColors: Record<string, string> = {
 
 export const statusColors: Record<string, string> = {
   open: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
-  in_progress: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-  resolved: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+  in_progress:
+    "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+  resolved:
+    "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
 }
 
 export const categoryLabels: Record<string, string> = {
@@ -64,8 +70,10 @@ export const categoryLabels: Record<string, string> = {
 export const categoryColors: Record<string, string> = {
   general: "bg-gray-100 text-gray-600 dark:bg-gray-900/30 dark:text-gray-400",
   loan: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
-  savings: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-  service: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+  savings:
+    "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+  service:
+    "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
   technical: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
   other: "bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400",
 }
@@ -91,8 +99,10 @@ export function ComplaintsClient({
         c.complaint_ref?.toLowerCase().includes(search.toLowerCase()) ||
         c.body?.toLowerCase().includes(search.toLowerCase())
       const matchStatus = statusFilter === "all" || c.status === statusFilter
-      const matchPriority = priorityFilter === "all" || c.priority === priorityFilter
-      const matchCategory = categoryFilter === "all" || c.category === categoryFilter
+      const matchPriority =
+        priorityFilter === "all" || c.priority === priorityFilter
+      const matchCategory =
+        categoryFilter === "all" || c.category === categoryFilter
       return matchSearch && matchStatus && matchPriority && matchCategory
     })
   }, [complaints, search, statusFilter, priorityFilter, categoryFilter])
@@ -104,7 +114,7 @@ export function ComplaintsClient({
   }, [filtered, page, pageSize])
 
   // Reset to page 1 when filters change
-  useMemo(() => {
+  useEffect(() => {
     setPage(1)
   }, [search, statusFilter, priorityFilter, categoryFilter])
 
@@ -149,64 +159,89 @@ export function ComplaintsClient({
 
   return (
     <div className="space-y-6">
-
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Complaints & Issues</h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <h1 className="text-2xl font-bold tracking-tight">
+            Complaints & Issues
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             Track and resolve member complaints
           </p>
         </div>
         <Button onClick={() => setAddOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
+          <Plus className="mr-2 h-4 w-4" />
           New Complaint
         </Button>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {kpiCards.map((card) => (
           <div
             key={card.label}
-            className={`relative bg-card border border-border rounded overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 group cursor-pointer ${statusFilter === card.filter ? "ring-2 ring-primary" : ""}`}
-            onClick={() => setStatusFilter(statusFilter === card.filter ? "all" : card.filter)}
+            className={`group relative cursor-pointer overflow-hidden rounded border border-border bg-card shadow-sm transition-all duration-300 hover:shadow-md ${statusFilter === card.filter ? "ring-2 ring-primary" : ""}`}
+            onClick={() =>
+              setStatusFilter(
+                statusFilter === card.filter ? "all" : card.filter
+              )
+            }
           >
             {/* Left accent bar */}
 
             {/* Subtle tinted background on hover */}
             <div
-              className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-2xl"
-              style={{ background: `radial-gradient(ellipse at top left, ${card.color.replace("text-", "").replace("-500", "") === "blue" ? "#3b82f6" : card.color.replace("text-", "").replace("-500", "") === "yellow" ? "#eab308" : card.color.replace("text-", "").replace("-500", "") === "green" ? "#10b981" : "#6b7280"}08, transparent 70%)` }}
+              className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+              style={{
+                background: `radial-gradient(ellipse at top left, ${card.color.replace("text-", "").replace("-500", "") === "blue" ? "#3b82f6" : card.color.replace("text-", "").replace("-500", "") === "yellow" ? "#eab308" : card.color.replace("text-", "").replace("-500", "") === "green" ? "#10b981" : "#6b7280"}08, transparent 70%)`,
+              }}
             />
 
             <div className="relative px-5 pt-4 pb-4">
               {/* Top row: title + icon */}
-              <div className="flex items-start justify-between mb-3">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest leading-none">
+              <div className="mb-3 flex items-start justify-between">
+                <p className="text-xs leading-none font-semibold tracking-widest text-muted-foreground uppercase">
                   {card.label}
                 </p>
                 <div
-                  className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ background: `${card.color.replace("text-", "").replace("-500", "") === "blue" ? "#3b82f6" : card.color.replace("text-", "").replace("-500", "") === "yellow" ? "#eab308" : card.color.replace("text-", "").replace("-500", "") === "green" ? "#10b981" : "#6b7280"}18` }}
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl"
+                  style={{
+                    background: `${card.color.replace("text-", "").replace("-500", "") === "blue" ? "#3b82f6" : card.color.replace("text-", "").replace("-500", "") === "yellow" ? "#eab308" : card.color.replace("text-", "").replace("-500", "") === "green" ? "#10b981" : "#6b7280"}18`,
+                  }}
                 >
                   <card.icon
                     className="h-4 w-4"
-                    style={{ color: card.color.replace("text-", "").replace("-500", "") === "blue" ? "#3b82f6" : card.color.replace("text-", "").replace("-500", "") === "yellow" ? "#eab308" : card.color.replace("text-", "").replace("-500", "") === "green" ? "#10b981" : "#6b7280" }}
+                    style={{
+                      color:
+                        card.color.replace("text-", "").replace("-500", "") ===
+                        "blue"
+                          ? "#3b82f6"
+                          : card.color
+                                .replace("text-", "")
+                                .replace("-500", "") === "yellow"
+                            ? "#eab308"
+                            : card.color
+                                  .replace("text-", "")
+                                  .replace("-500", "") === "green"
+                              ? "#10b981"
+                              : "#6b7280",
+                    }}
                   />
                 </div>
               </div>
 
               {/* Value */}
-              <p className="text-[1.6rem] font-bold text-foreground tracking-tight leading-none mb-3 tabular-nums">
+              <p className="mb-3 text-[1.6rem] leading-none font-bold tracking-tight text-foreground tabular-nums">
                 {card.value}
               </p>
             </div>
 
             {/* Bottom accent line */}
             <div
-              className="absolute bottom-0 left-3 right-3 h-px opacity-20"
-              style={{ background: `linear-gradient(to right, transparent, ${card.color.replace("text-", "").replace("-500", "") === "blue" ? "#3b82f6" : card.color.replace("text-", "").replace("-500", "") === "yellow" ? "#eab308" : card.color.replace("text-", "").replace("-500", "") === "green" ? "#10b981" : "#6b7280"}, transparent)` }}
+              className="absolute right-3 bottom-0 left-3 h-px opacity-20"
+              style={{
+                background: `linear-gradient(to right, transparent, ${card.color.replace("text-", "").replace("-500", "") === "blue" ? "#3b82f6" : card.color.replace("text-", "").replace("-500", "") === "yellow" ? "#eab308" : card.color.replace("text-", "").replace("-500", "") === "green" ? "#10b981" : "#6b7280"}, transparent)`,
+              }}
             />
           </div>
         ))}
@@ -215,7 +250,7 @@ export function ComplaintsClient({
       {/* Toolbar */}
       <div className="flex items-center gap-3">
         <div className="relative w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search complaints, members, refs..."
             className="pl-9"
@@ -224,8 +259,8 @@ export function ComplaintsClient({
           />
         </div>
 
-        <div className="flex items-center gap-2 ml-auto">
-          <SlidersHorizontal className="h-4 w-4 text-muted-foreground shrink-0" />
+        <div className="ml-auto flex items-center gap-2">
+          <SlidersHorizontal className="h-4 w-4 shrink-0 text-muted-foreground" />
 
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-full">
@@ -276,17 +311,17 @@ export function ComplaintsClient({
 
       {/* Empty State */}
       {filtered.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-20 text-muted-foreground border rounded-lg">
-          <MessageSquare className="h-12 w-12 mb-3 opacity-30" />
+        <div className="flex flex-col items-center justify-center rounded-lg border py-20 text-muted-foreground">
+          <MessageSquare className="mb-3 h-12 w-12 opacity-30" />
           <p className="text-lg font-medium">No complaints found</p>
-          <p className="text-sm mt-1">
+          <p className="mt-1 text-sm">
             {search || statusFilter !== "all"
               ? "Try adjusting your filters"
               : "No complaints have been submitted yet"}
           </p>
           {!search && statusFilter === "all" && (
             <Button className="mt-4" onClick={() => setAddOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="mr-2 h-4 w-4" />
               Add First Complaint
             </Button>
           )}
@@ -295,7 +330,7 @@ export function ComplaintsClient({
 
       {/* Complaints Grid */}
       {paginated.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
           {paginated.map((complaint) => (
             <ComplaintCard key={complaint.id} complaint={complaint} />
           ))}
@@ -306,7 +341,9 @@ export function ComplaintsClient({
       {filtered.length > 0 && (
         <div className="flex items-center justify-between px-2 py-4">
           <div className="flex-1 text-sm text-muted-foreground">
-            Showing <strong>{(page - 1) * pageSize + 1}</strong> - <strong>{Math.min(page * pageSize, filtered.length)}</strong> of <strong>{filtered.length}</strong> results
+            Showing <strong>{(page - 1) * pageSize + 1}</strong> -{" "}
+            <strong>{Math.min(page * pageSize, filtered.length)}</strong> of{" "}
+            <strong>{filtered.length}</strong> results
           </div>
           <div className="flex items-center space-x-6 lg:space-x-8">
             <div className="flex items-center space-x-2">

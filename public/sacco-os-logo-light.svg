@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 120" fill="none">
+  <defs>
+    <linearGradient id="amberGradL" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FBBF24"/>
+      <stop offset="100%" stop-color="#F59E0B"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Mark -->
+  <polygon points="60,10 98,30 98,70 60,90 22,70 22,30" stroke="url(#amberGradL)" stroke-width="2.5" fill="none"/>
+  <polygon points="60,22 82,50 60,78 38,50" fill="#FBBF24" opacity="0.12"/>
+  <rect x="40" y="38" width="40" height="6" rx="3" fill="url(#amberGradL)"/>
+  <rect x="44" y="49" width="32" height="6" rx="3" fill="url(#amberGradL)" opacity="0.75"/>
+  <rect x="48" y="60" width="24" height="6" rx="3" fill="url(#amberGradL)" opacity="0.5"/>
+  <circle cx="60" cy="17" r="3" fill="#FBBF24"/>
+
+  <!-- Wordmark — white on dark -->
+  <text x="114" y="63" font-family="'Cabinet Grotesk', 'DM Sans', Georgia, serif" font-size="42" font-weight="800" letter-spacing="-1.5" fill="#F8FAFC">Sacco</text>
+  <text x="278" y="63" font-family="'Cabinet Grotesk', 'DM Sans', Georgia, serif" font-size="42" font-weight="800" letter-spacing="-1.5" fill="url(#amberGradL)">OS</text>
+
+  <!-- Tagline -->
+  <text x="114" y="83" font-family="'DM Mono', 'Courier New', monospace" font-size="11" font-weight="400" letter-spacing="3" fill="#94A3B8">COOPERATIVE MANAGEMENT PLATFORM</text>
+</svg>

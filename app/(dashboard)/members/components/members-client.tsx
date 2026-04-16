@@ -25,7 +25,7 @@ import { Member } from "@/db/schema"
 import { MembersTable } from "./members-table"
 import { MembersGrid } from "./members-grid"
 import { ImportExcel } from "./import-excel"
-import * as XLSX from "xlsx"
+import ExcelJS from "exceljs"
 import { toast } from "sonner"
 
 interface MembersClientProps {
@@ -45,65 +45,91 @@ export function MembersClient({ members }: MembersClientProps) {
         m.full_name.toLowerCase().includes(search.toLowerCase()) ||
         m.member_code.toLowerCase().includes(search.toLowerCase()) ||
         (m.phone ?? "").toLowerCase().includes(search.toLowerCase())
-      const matchStatus =
-        statusFilter === "all" || m.status === statusFilter
+      const matchStatus = statusFilter === "all" || m.status === statusFilter
       return matchSearch && matchStatus
     })
   }, [members, search, statusFilter])
 
-  const handleExport = () => {
+  const handleExport = async () => {
+    const workbook = new ExcelJS.Workbook()
+    const worksheet = workbook.addWorksheet("Members")
+
+    worksheet.columns = [
+      { header: "Member Code", key: "member_code", width: 15 },
+      { header: "Full Name", key: "full_name", width: 25 },
+      { header: "Email", key: "email", width: 30 },
+      { header: "Phone", key: "phone", width: 15 },
+      { header: "National ID", key: "national_id", width: 15 },
+      { header: "Status", key: "status", width: 10 },
+      { header: "Date of Birth", key: "date_of_birth", width: 15 },
+      { header: "Address", key: "address", width: 30 },
+      { header: "Next of Kin", key: "next_of_kin", width: 20 },
+      { header: "Next of Kin Phone", key: "next_of_kin_phone", width: 15 },
+      { header: "Joined At", key: "joined_at", width: 15 },
+    ]
+
     const data = filtered.map((m) => ({
-      "Member Code": m.member_code,
-      "Full Name": m.full_name,
-      Email: m.email ?? "",
-      Phone: m.phone ?? "",
-      "National ID": m.national_id ?? "",
-      Status: m.status,
-      "Date of Birth": m.date_of_birth ?? "",
-      Address: m.address ?? "",
-      "Next of Kin": m.next_of_kin ?? "",
-      "Next of Kin Phone": m.next_of_kin_phone ?? "",
-      "Joined At": m.joined_at
-        ? new Date(m.joined_at).toLocaleDateString()
-        : "",
+      member_code: m.member_code,
+      full_name: m.full_name,
+      email: m.email ?? "",
+      phone: m.phone ?? "",
+      national_id: m.national_id ?? "",
+      status: m.status,
+      date_of_birth: m.date_of_birth ?? "",
+      address: m.address ?? "",
+      next_of_kin: m.next_of_kin ?? "",
+      next_of_kin_phone: m.next_of_kin_phone ?? "",
+      joined_at: m.joined_at ? new Date(m.joined_at).toLocaleDateString() : "",
     }))
-    const ws = XLSX.utils.json_to_sheet(data)
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, "Members")
-    XLSX.writeFile(wb, "sacco-members.xlsx")
+
+    worksheet.addRows(data)
+
+    const buffer = await workbook.xlsx.writeBuffer()
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = "sacco-members.xlsx"
+    a.click()
+    window.URL.revokeObjectURL(url)
+
     toast.success("Members exported to Excel")
   }
 
   return (
     <div className="space-y-6">
-
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Members</h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <p className="mt-1 text-sm text-muted-foreground">
             {members.length} total members
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Button variant="outline" size="lg" onClick={() => setShowImport(true)}>
-            <Upload className="h-4 w-4 mr-2" />
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={() => setShowImport(true)}
+          >
+            <Upload className="mr-2 h-4 w-4" />
             Import Excel
           </Button>
           <Button variant="outline" onClick={handleExport}>
-            <Download className="h-4 w-4 mr-2" />
+            <Download className="mr-2 h-4 w-4" />
             Export Excel
           </Button>
-          <Button size="lg"onClick={() => router.push("/members/add")}>
-            <UserPlus className="h-4 w-4 mr-2" />
+          <Button size="lg" onClick={() => router.push("/members/add")}>
+            <UserPlus className="mr-2 h-4 w-4" />
             Add Member
           </Button>
         </div>
       </div>
 
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-
+      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         {/* Left — View Toggle */}
         <Tabs
           value={view}
@@ -111,20 +137,20 @@ export function MembersClient({ members }: MembersClientProps) {
         >
           <TabsList>
             <TabsTrigger value="table">
-              <List className="h-4 w-4 mr-2" />
+              <List className="mr-2 h-4 w-4" />
               Table
             </TabsTrigger>
             <TabsTrigger value="grid">
-              <LayoutGrid className="h-4 w-4 mr-2" />
+              <LayoutGrid className="mr-2 h-4 w-4" />
               Cards
             </TabsTrigger>
           </TabsList>
         </Tabs>
 
         {/* Right — Search + Filter */}
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex w-full items-center gap-2 sm:w-auto">
           <div className="relative flex-1 sm:w-72">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Search name, code, phone..."
               className="pl-9"
@@ -133,8 +159,11 @@ export function MembersClient({ members }: MembersClientProps) {
             />
           </div>
           <div className="flex items-center gap-2">
-            <SlidersHorizontal className="h-4 w-4 text-muted-foreground shrink-0" />
-            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value ?? "all")}>
+            <SlidersHorizontal className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <Select
+              value={statusFilter}
+              onValueChange={(value) => setStatusFilter(value ?? "all")}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="All Status" />
               </SelectTrigger>
@@ -157,10 +186,7 @@ export function MembersClient({ members }: MembersClientProps) {
       )}
 
       {/* Import Modal */}
-      <ImportExcel
-        open={showImport}
-        onClose={() => setShowImport(false)}
-      />
+      <ImportExcel open={showImport} onClose={() => setShowImport(false)} />
     </div>
   )
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useActionState, useState, useEffect, useCallback } from "react"
+import { useActionState, useState, useEffect, useCallback, useRef } from "react"
 import { useDropzone } from "react-dropzone"
 import { toast } from "sonner"
 import { uploadDocumentAction, DocumentFormState } from "../actions"
@@ -20,14 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  Upload,
-  FileText,
-  Image,
-  X,
-  Loader2,
-  CheckCircle,
-} from "lucide-react"
+import { Upload, FileText, Image, X, Loader2, CheckCircle } from "lucide-react"
 
 const initialState: DocumentFormState = {}
 
@@ -60,6 +53,12 @@ export function UploadDialog({
   const [memberId, setMemberId] = useState(defaultMemberId ?? "")
   const [docType, setDocType] = useState("")
   const [preview, setPreview] = useState<string | null>(null)
+  const onCloseRef = useRef(onClose)
+
+  // Update ref when onClose changes
+  useEffect(() => {
+    onCloseRef.current = onClose
+  }, [onClose])
 
   useEffect(() => {
     if (state.success) {
@@ -67,10 +66,10 @@ export function UploadDialog({
       setSelectedFile(null)
       setPreview(null)
       setDocType("")
-      onClose()
+      onCloseRef.current()
     }
     if (state.error) toast.error(state.error)
-  }, [state, onClose])
+  }, [state])
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0]
@@ -114,7 +113,7 @@ export function UploadDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg w-full">
+      <DialogContent className="w-full max-w-lg">
         <DialogHeader>
           <DialogTitle>Upload Document</DialogTitle>
           <DialogDescription>
@@ -123,7 +122,6 @@ export function UploadDialog({
         </DialogHeader>
 
         <form action={handleSubmit} className="space-y-4">
-
           {/* Member Select */}
           <div className="space-y-1.5">
             <Label>Member *</Label>
@@ -170,26 +168,28 @@ export function UploadDialog({
           {!selectedFile ? (
             <div
               {...getRootProps()}
-              className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+              className={`cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
                 isDragActive
                   ? "border-primary bg-primary/5"
                   : "border-muted-foreground/30 hover:border-primary hover:bg-muted/30"
               }`}
             >
               <input {...getInputProps()} />
-              <Upload className="h-10 w-10 mx-auto mb-3 text-muted-foreground opacity-50" />
+              <Upload className="mx-auto mb-3 h-10 w-10 text-muted-foreground opacity-50" />
               <p className="text-sm font-medium">
-                {isDragActive ? "Drop your file here" : "Drag & drop or click to browse"}
+                {isDragActive
+                  ? "Drop your file here"
+                  : "Drag & drop or click to browse"}
               </p>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="mt-1 text-xs text-muted-foreground">
                 PDF, JPG, PNG, WEBP · Max 10MB
               </p>
             </div>
           ) : (
-            <div className="border w-full rounded-lg p-4 bg-muted/20">
+            <div className="w-full rounded-lg border bg-muted/20 p-4">
               <div className="flex items-start gap-3">
                 {/* File Preview */}
-                <div className="h-16 w-16 rounded-lg border bg-muted overflow-hidden shrink-0 flex items-center justify-center">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
                   {preview ? (
                     <img
                       src={preview}
@@ -202,13 +202,15 @@ export function UploadDialog({
                 </div>
 
                 {/* File Info */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium break-all">{selectedFile.name}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium break-all">
+                    {selectedFile.name}
+                  </p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
                     {formatFileSize(selectedFile.size)} ·{" "}
                     {selectedFile.type.split("/")[1].toUpperCase()}
                   </p>
-                  <div className="flex items-center gap-1.5 mt-2 text-xs text-green-600">
+                  <div className="mt-2 flex items-center gap-1.5 text-xs text-green-600">
                     <CheckCircle className="h-3.5 w-3.5" />
                     Ready to upload
                   </div>
@@ -232,7 +234,7 @@ export function UploadDialog({
           )}
 
           {/* Actions */}
-          <div className="flex gap-2 justify-end pt-2">
+          <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
@@ -242,12 +244,12 @@ export function UploadDialog({
             >
               {isPending ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Uploading...
                 </>
               ) : (
                 <>
-                  <Upload className="h-4 w-4 mr-2" />
+                  <Upload className="mr-2 h-4 w-4" />
                   Upload Document
                 </>
               )}

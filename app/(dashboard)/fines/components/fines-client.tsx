@@ -19,7 +19,16 @@ import {
   ChartLegend,
   ChartLegendContent,
 } from "@/components/ui/chart"
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts"
+import {
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+} from "recharts"
 import {
   AlertCircle,
   CheckCircle,
@@ -34,7 +43,7 @@ import { formatUGX } from "@/lib/utils/format"
 import { FinesTable } from "./fines-table"
 import { AddFineDialog } from "./add-fine-dialog"
 import { DonutChart } from "@/app/(dashboard)/components/donut-chart"
-import * as XLSX from "xlsx"
+import ExcelJS from "exceljs"
 import { toast } from "sonner"
 
 interface FinesClientProps {
@@ -68,11 +77,13 @@ export const priorityColors: Record<string, string> = {
 
 export const statusConfig: Record<string, { color: string; label: string }> = {
   pending: {
-    color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
+    color:
+      "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
     label: "Pending",
   },
   paid: {
-    color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+    color:
+      "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
     label: "Paid",
   },
   waived: {
@@ -81,7 +92,12 @@ export const statusConfig: Record<string, { color: string; label: string }> = {
   },
 }
 
-export function FinesClient({ fines, stats, members, categories }: FinesClientProps) {
+export function FinesClient({
+  fines,
+  stats,
+  members,
+  categories,
+}: FinesClientProps) {
   const [addOpen, setAddOpen] = useState(false)
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
@@ -95,7 +111,8 @@ export function FinesClient({ fines, stats, members, categories }: FinesClientPr
         f.reason?.toLowerCase().includes(search.toLowerCase()) ||
         f.member_code?.toLowerCase().includes(search.toLowerCase())
       const matchStatus = statusFilter === "all" || f.status === statusFilter
-      const matchPriority = priorityFilter === "all" || f.priority === priorityFilter
+      const matchPriority =
+        priorityFilter === "all" || f.priority === priorityFilter
       return matchSearch && matchStatus && matchPriority
     })
   }, [fines, search, statusFilter, priorityFilter])
@@ -111,7 +128,9 @@ export function FinesClient({ fines, stats, members, categories }: FinesClientPr
     }
     fines.forEach((f) => {
       if (!f.created_at) return
-      const key = new Date(f.created_at).toLocaleString("default", { month: "short" })
+      const key = new Date(f.created_at).toLocaleString("default", {
+        month: "short",
+      })
       if (months[key] !== undefined) months[key] += f.amount / 100
     })
     return Object.entries(months).map(([month, amount]) => ({ month, amount }))
@@ -124,82 +143,135 @@ export function FinesClient({ fines, stats, members, categories }: FinesClientPr
     { label: "Waived", value: stats.waivedCount, color: "#6b7280" },
   ].filter((d) => d.value > 0)
 
-  const handleExport = () => {
+  const handleExport = async () => {
+    const workbook = new ExcelJS.Workbook()
+    const worksheet = workbook.addWorksheet("Fines")
+
+    worksheet.columns = [
+      { header: "Fine Ref", key: "fine_ref", width: 15 },
+      { header: "Member", key: "member", width: 25 },
+      { header: "Member Code", key: "member_code", width: 15 },
+      { header: "Category", key: "category", width: 15 },
+      { header: "Amount (UGX)", key: "amount", width: 15 },
+      { header: "Reason", key: "reason", width: 30 },
+      { header: "Priority", key: "priority", width: 10 },
+      { header: "Status", key: "status", width: 10 },
+      { header: "Due Date", key: "due_date", width: 15 },
+      { header: "Paid At", key: "paid_at", width: 15 },
+      { header: "Payment Method", key: "payment_method", width: 15 },
+      { header: "Date", key: "date", width: 15 },
+    ]
+
     const data = filtered.map((f) => ({
-      "Fine Ref": f.fine_ref,
-      Member: f.member_name,
-      "Member Code": f.member_code,
-      Category: f.category_name ?? "",
-      "Amount (UGX)": f.amount / 100,
-      Reason: f.reason,
-      Priority: f.priority,
-      Status: f.status,
-      "Due Date": f.due_date ?? "",
-      "Paid At": f.paid_at ? new Date(f.paid_at).toLocaleDateString() : "",
-      "Payment Method": f.payment_method ?? "",
-      Date: f.created_at ? new Date(f.created_at).toLocaleDateString() : "",
+      fine_ref: f.fine_ref,
+      member: f.member_name,
+      member_code: f.member_code,
+      category: f.category_name ?? "",
+      amount: f.amount / 100,
+      reason: f.reason,
+      priority: f.priority,
+      status: f.status,
+      due_date: f.due_date ?? "",
+      paid_at: f.paid_at ? new Date(f.paid_at).toLocaleDateString() : "",
+      payment_method: f.payment_method ?? "",
+      date: f.created_at ? new Date(f.created_at).toLocaleDateString() : "",
     }))
-    const ws = XLSX.utils.json_to_sheet(data)
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, "Fines")
-    XLSX.writeFile(wb, "sacco-fines.xlsx")
+
+    worksheet.addRows(data)
+
+    const buffer = await workbook.xlsx.writeBuffer()
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = "sacco-fines.xlsx"
+    a.click()
+    window.URL.revokeObjectURL(url)
+
     toast.success("Fines exported to Excel")
   }
 
   return (
     <div className="space-y-6">
-
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Fines</h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <p className="mt-1 text-sm text-muted-foreground">
             {stats.totalCount} total fines issued
           </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleExport}>
-            <Download className="h-4 w-4 mr-2" />
+            <Download className="mr-2 h-4 w-4" />
             Export Excel
           </Button>
           <Button
-            className="bg-red-600 hover:bg-red-700 text-white"
+            className="bg-red-600 text-white hover:bg-red-700"
             onClick={() => setAddOpen(true)}
           >
-            <Plus className="h-4 w-4 mr-2" />
+            <Plus className="mr-2 h-4 w-4" />
             Issue Fine
           </Button>
         </div>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[
-          { title: "Total Issued", value: formatUGX(stats.totalAmount), description: `${stats.totalCount} fines`, icon: DollarSign, accentColor: "#ef4444" },
-          { title: "Pending", value: formatUGX(stats.pendingAmount), description: `${stats.pendingCount} unpaid`, icon: AlertCircle, accentColor: "#eab308" },
-          { title: "Collected", value: formatUGX(stats.paidAmount), description: `${stats.paidCount} paid`, icon: CheckCircle, accentColor: "#10b981" },
-          { title: "Waived", value: stats.waivedCount, description: "fines waived", icon: XCircle, accentColor: "#6b7280" },
+          {
+            title: "Total Issued",
+            value: formatUGX(stats.totalAmount),
+            description: `${stats.totalCount} fines`,
+            icon: DollarSign,
+            accentColor: "#ef4444",
+          },
+          {
+            title: "Pending",
+            value: formatUGX(stats.pendingAmount),
+            description: `${stats.pendingCount} unpaid`,
+            icon: AlertCircle,
+            accentColor: "#eab308",
+          },
+          {
+            title: "Collected",
+            value: formatUGX(stats.paidAmount),
+            description: `${stats.paidCount} paid`,
+            icon: CheckCircle,
+            accentColor: "#10b981",
+          },
+          {
+            title: "Waived",
+            value: stats.waivedCount,
+            description: "fines waived",
+            icon: XCircle,
+            accentColor: "#6b7280",
+          },
         ].map((card, i) => (
           <div
             key={card.title}
-            className="relative bg-card border border-border rounded overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 group"
+            className="group relative overflow-hidden rounded border border-border bg-card shadow-sm transition-all duration-300 hover:shadow-md"
           >
             {/* Left accent bar */}
 
             {/* Subtle tinted background on hover */}
             <div
-              className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-2xl"
-              style={{ background: `radial-gradient(ellipse at top left, ${card.accentColor}08, transparent 70%)` }}
+              className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+              style={{
+                background: `radial-gradient(ellipse at top left, ${card.accentColor}08, transparent 70%)`,
+              }}
             />
 
             <div className="relative px-5 pt-4 pb-4">
               {/* Top row: title + icon */}
-              <div className="flex items-start justify-between mb-3">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest leading-none">
+              <div className="mb-3 flex items-start justify-between">
+                <p className="text-xs leading-none font-semibold tracking-widest text-muted-foreground uppercase">
                   {card.title}
                 </p>
                 <div
-                  className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl"
                   style={{ background: `${card.accentColor}18` }}
                 >
                   <card.icon
@@ -210,25 +282,29 @@ export function FinesClient({ fines, stats, members, categories }: FinesClientPr
               </div>
 
               {/* Value */}
-              <p className="text-[1.6rem] font-bold text-foreground tracking-tight leading-none mb-3 tabular-nums">
+              <p className="mb-3 text-[1.6rem] leading-none font-bold tracking-tight text-foreground tabular-nums">
                 {card.value}
               </p>
 
               {/* Description */}
-              <p className="text-xs text-muted-foreground">{card.description}</p>
+              <p className="text-xs text-muted-foreground">
+                {card.description}
+              </p>
             </div>
 
             {/* Bottom accent line */}
             <div
-              className="absolute bottom-0 left-3 right-3 h-px opacity-20"
-              style={{ background: `linear-gradient(to right, transparent, ${card.accentColor}, transparent)` }}
+              className="absolute right-3 bottom-0 left-3 h-px opacity-20"
+              style={{
+                background: `linear-gradient(to right, transparent, ${card.accentColor}, transparent)`,
+              }}
             />
           </div>
         ))}
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="text-base">Monthly Fines Issued</CardTitle>
@@ -237,13 +313,20 @@ export function FinesClient({ fines, stats, members, categories }: FinesClientPr
             <ChartContainer config={chartConfig} className="h-[200px] w-full">
               <BarChart data={monthlyData}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis dataKey="month" tickLine={false} axisLine={false} className="text-xs" />
+                <XAxis
+                  dataKey="month"
+                  tickLine={false}
+                  axisLine={false}
+                  className="text-xs"
+                />
                 <YAxis
                   tickLine={false}
                   axisLine={false}
                   className="text-xs"
                   tickFormatter={(v) =>
-                    v >= 1000000 ? `${(v / 1000000).toFixed(1)}M` : `${(v / 1000).toFixed(0)}K`
+                    v >= 1000000
+                      ? `${(v / 1000000).toFixed(1)}M`
+                      : `${(v / 1000).toFixed(0)}K`
                   }
                 />
                 <ChartTooltip
@@ -253,7 +336,12 @@ export function FinesClient({ fines, stats, members, categories }: FinesClientPr
                     />
                   }
                 />
-                <Bar dataKey="amount" fill={CHART_COLOR} radius={4} name="Amount" />
+                <Bar
+                  dataKey="amount"
+                  fill={CHART_COLOR}
+                  radius={4}
+                  name="Amount"
+                />
               </BarChart>
             </ChartContainer>
           </CardContent>
@@ -269,9 +357,9 @@ export function FinesClient({ fines, stats, members, categories }: FinesClientPr
       </div>
 
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <div className="flex flex-col flex-wrap items-start gap-3 sm:flex-row sm:items-center">
+        <div className="relative min-w-64 flex-1">
+          <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search member, ref, reason..."
             className="pl-9"
@@ -280,8 +368,11 @@ export function FinesClient({ fines, stats, members, categories }: FinesClientPr
           />
         </div>
         <div className="flex items-center gap-2">
-          <SlidersHorizontal className="h-4 w-4 text-muted-foreground shrink-0" />
-          <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value || "all")}>
+          <SlidersHorizontal className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <Select
+            value={statusFilter}
+            onValueChange={(value) => setStatusFilter(value || "all")}
+          >
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
@@ -292,7 +383,10 @@ export function FinesClient({ fines, stats, members, categories }: FinesClientPr
               <SelectItem value="waived">Waived</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={priorityFilter} onValueChange={(value) => setPriorityFilter(value || "all")}>
+          <Select
+            value={priorityFilter}
+            onValueChange={(value) => setPriorityFilter(value || "all")}
+          >
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Priority" />
             </SelectTrigger>

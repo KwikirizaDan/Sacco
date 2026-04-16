@@ -2,9 +2,16 @@ import { requireAuth } from "@/lib/auth"
 import { getAllComplaints } from "@/db/queries/complaints"
 import { getMembersForSelect } from "@/db/queries/members"
 import { db } from "@/db"
-import { complaints } from "@/db/schema"
+import { complaints, members } from "@/db/schema"
 import { eq, count, and } from "drizzle-orm"
 import { ComplaintsClient } from "./components/complaints-client"
+
+type MemberSelect = {
+  id: string
+  full_name: string
+  member_code: string
+  phone: string | null
+}
 
 export default async function ComplaintsPage() {
   const user = await requireAuth()

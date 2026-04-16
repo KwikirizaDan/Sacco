@@ -11,16 +11,20 @@ import { ClientHeader } from "@/components/ui/client-header"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: { default: "SACCO Manager", template: "%s — SACCO Manager" },
-  description: "Modern SACCO management",
+  title: { default: "SaccoOS", template: "%s — SaccoOS" },
+  description: "Cooperative Management Platform",
   manifest: "/manifest.json",
-  applicationName: "SACCO Manager",
-  icons: { icon: [{ url: "/sacco_logo_dark.svg", type: "image/svg+xml" }] },
+  applicationName: "SaccoOS",
+  icons: [
+    { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
+    { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
+    { url: "/sacco-os-icon.svg", type: "image/svg+xml" },
+  ],
 }
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#0f172a",
+  themeColor: "#F59E0B",
 }
 
 export default async function RootLayout({
@@ -46,6 +50,12 @@ export default async function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link
+          href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Cabinet+Grotesk:wght@400;500;600;700;800;900&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body className="font-sans">
         <QueryProvider>
           <Suspense fallback={null}>

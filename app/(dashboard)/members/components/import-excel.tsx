@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react"
 import { useDropzone } from "react-dropzone"
-import * as XLSX from "xlsx"
+import ExcelJS from "exceljs"
 import {
   Dialog,
   DialogContent,
@@ -39,11 +39,27 @@ export function ImportExcel({ open, onClose }: ImportExcelProps) {
     if (!file) return
 
     const reader = new FileReader()
-    reader.onload = (e) => {
-      const data = new Uint8Array(e.target?.result as ArrayBuffer)
-      const workbook = XLSX.read(data, { type: "array" })
-      const sheet = workbook.Sheets[workbook.SheetNames[0]]
-      const json = XLSX.utils.sheet_to_json(sheet) as Record<string, string>[]
+    reader.onload = async (e) => {
+      const data = e.target?.result as ArrayBuffer
+      const workbook = new ExcelJS.Workbook()
+      await workbook.xlsx.load(data)
+      const worksheet = workbook.getWorksheet(1)
+
+      if (!worksheet) {
+        toast.error("Invalid Excel file: no worksheet found")
+        return
+      }
+
+      const json: Record<string, string>[] = []
+      worksheet.eachRow((row, rowNumber) => {
+        if (rowNumber === 1) return // skip header
+        const rowData: Record<string, string> = {}
+        row.eachCell((cell, colNumber) => {
+          const header = worksheet.getCell(1, colNumber).value as string
+          rowData[header] = (cell.value as string) || ""
+        })
+        json.push(rowData)
+      })
 
       const parsed: ParsedRow[] = json.map((row) => {
         const errors: string[] = []
@@ -76,7 +92,9 @@ export function ImportExcel({ open, onClose }: ImportExcelProps) {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [
+        ".xlsx",
+      ],
       "application/vnd.ms-excel": [".xls"],
     },
     maxFiles: 1,
@@ -105,29 +123,32 @@ export function ImportExcel({ open, onClose }: ImportExcelProps) {
         <DialogHeader>
           <DialogTitle>Import Members from Excel</DialogTitle>
           <DialogDescription>
-            Upload an Excel file with columns: Full Name, Phone, Email, National ID, Address
+            Upload an Excel file with columns: Full Name, Phone, Email, National
+            ID, Address
           </DialogDescription>
         </DialogHeader>
 
         {rows.length === 0 ? (
           <div
             {...getRootProps()}
-            className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${
+            className={`cursor-pointer rounded-lg border-2 border-dashed p-12 text-center transition-colors ${
               isDragActive
                 ? "border-primary bg-primary/5"
                 : "border-muted-foreground/30 hover:border-primary hover:bg-muted/30"
             }`}
           >
             <input {...getInputProps()} />
-            <FileSpreadsheet className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <FileSpreadsheet className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
             <p className="text-base font-medium">
-              {isDragActive ? "Drop your file here" : "Drag & drop or click to upload"}
+              {isDragActive
+                ? "Drop your file here"
+                : "Drag & drop or click to upload"}
             </p>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="mt-1 text-sm text-muted-foreground">
               Supports .xlsx and .xls files
             </p>
             <Button variant="outline" className="mt-4">
-              <Upload className="h-4 w-4 mr-2" />
+              <Upload className="mr-2 h-4 w-4" />
               Browse File
             </Button>
           </div>
@@ -144,7 +165,7 @@ export function ImportExcel({ open, onClose }: ImportExcelProps) {
               </Badge>
             </div>
 
-            <div className="max-h-64 overflow-y-auto border rounded-lg divide-y">
+            <div className="max-h-64 divide-y overflow-y-auto rounded-lg border">
               {rows.map((row, i) => (
                 <div
                   key={i}
@@ -154,16 +175,16 @@ export function ImportExcel({ open, onClose }: ImportExcelProps) {
                 >
                   <div>
                     <p className="font-medium">{row.full_name || "—"}</p>
-                    <p className="text-muted-foreground text-xs">
+                    <p className="text-xs text-muted-foreground">
                       {row.phone} · {row.national_id}
                     </p>
                   </div>
                   {row.valid ? (
-                    <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />
+                    <CheckCircle className="h-4 w-4 shrink-0 text-green-500" />
                   ) : (
                     <div className="text-right">
-                      <XCircle className="h-4 w-4 text-destructive shrink-0" />
-                      <p className="text-xs text-destructive mt-0.5">
+                      <XCircle className="h-4 w-4 shrink-0 text-destructive" />
+                      <p className="mt-0.5 text-xs text-destructive">
                         {row.errors.join(", ")}
                       </p>
                     </div>
@@ -172,18 +193,17 @@ export function ImportExcel({ open, onClose }: ImportExcelProps) {
               ))}
             </div>
 
-            <div className="flex gap-2 justify-end">
-              <Button
-                variant="outline"
-                onClick={() => setRows([])}
-              >
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setRows([])}>
                 Reset
               </Button>
               <Button
                 onClick={handleImport}
                 disabled={validRows.length === 0 || importing}
               >
-                {importing ? "Importing..." : `Import ${validRows.length} Members`}
+                {importing
+                  ? "Importing..."
+                  : `Import ${validRows.length} Members`}
               </Button>
             </div>
           </div>

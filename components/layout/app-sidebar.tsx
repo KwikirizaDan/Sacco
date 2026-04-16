@@ -45,6 +45,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { useSidebar } from "@/components/ui/sidebar"
+import { useTheme } from "next-themes"
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   user: { fullName: string; email: string; role: string }
@@ -152,11 +153,16 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { state, isMobile } = useSidebar()
+  const { theme } = useTheme()
+  const [logoSrc, setLogoSrc] = useState("/sacco-os-logo-dark.svg")
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     setMounted(true)
-  }, [])
+    setLogoSrc(
+      theme === "dark" ? "/sacco-os-logo-light.svg" : "/sacco-os-logo-dark.svg"
+    )
+  }, [theme])
 
   const allowed = ROLE_NAV[user.role] ?? ROLE_NAV.field_agent
   const filteredGroups = navGroups
@@ -184,30 +190,24 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" tooltip="SACCO Manager">
+            <SidebarMenuButton size="lg" tooltip="SaccoOS">
               <Link
                 href="/dashboard"
                 className="flex w-full items-center gap-2"
               >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    className="h-4 w-4"
-                  >
-                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                    <polyline points="9 22 9 12 15 12 15 22" />
-                  </svg>
-                </div>
-                <div className="flex flex-col gap-0 leading-none">
-                  <span className="text-sm font-semibold">SACCO</span>
-                  <span className="text-xs text-muted-foreground">
-                    Management
-                  </span>
-                </div>
+                {mounted ? (
+                  <img
+                    src={
+                      theme === "dark"
+                        ? "/sacco-os-logo-light.svg"
+                        : "/sacco-os-logo-dark.svg"
+                    }
+                    alt="SaccoOS"
+                    className="h-16 w-64 object-contain"
+                  />
+                ) : (
+                  <div className="h-16 w-64 animate-pulse rounded bg-muted" />
+                )}
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

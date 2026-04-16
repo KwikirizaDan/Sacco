@@ -44,7 +44,7 @@ import { DonutChart } from "@/app/(dashboard)/components/donut-chart"
 import { formatUGX } from "@/lib/utils/format"
 import { SavingsTable } from "./savings-table"
 import { CreateAccountDialog } from "./create-account-dialog"
-import * as XLSX from "xlsx"
+import ExcelJS from "exceljs"
 import { toast } from "sonner"
 
 interface SavingsClientProps {
@@ -112,78 +112,140 @@ export function SavingsClient({
     { label: "Fixed", value: stats.fixedAccounts, color: "#10b981" },
   ]
 
-  const handleExport = () => {
+  const handleExport = async () => {
+    const workbook = new ExcelJS.Workbook()
+    const worksheet = workbook.addWorksheet("Savings")
+
+    worksheet.columns = [
+      { header: "Account No", key: "account_no", width: 15 },
+      { header: "Member", key: "member", width: 25 },
+      { header: "Member Code", key: "member_code", width: 15 },
+      { header: "Balance (UGX)", key: "balance", width: 15 },
+      { header: "Type", key: "type", width: 10 },
+      { header: "Status", key: "status", width: 10 },
+      { header: "Lock Until", key: "lock_until", width: 15 },
+      { header: "Category", key: "category", width: 15 },
+      { header: "Opened", key: "opened", width: 15 },
+    ]
+
     const data = filtered.map((a) => ({
-      "Account No": a.account_number,
-      Member: a.member_name,
-      "Member Code": a.member_code,
-      "Balance (UGX)": a.balance / 100,
-      Type: a.account_type,
-      Status: a.is_locked ? "Locked" : "Active",
-      "Lock Until": a.lock_until ?? "",
-      Category: a.category_name ?? "",
-      Opened: a.created_at ? new Date(a.created_at).toLocaleDateString() : "",
+      account_no: a.account_number,
+      member: a.member_name,
+      member_code: a.member_code,
+      balance: a.balance / 100,
+      type: a.account_type,
+      status: a.is_locked ? "Locked" : "Active",
+      lock_until: a.lock_until ?? "",
+      category: a.category_name ?? "",
+      opened: a.created_at ? new Date(a.created_at).toLocaleDateString() : "",
     }))
-    const ws = XLSX.utils.json_to_sheet(data)
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, "Savings")
-    XLSX.writeFile(wb, "sacco-savings.xlsx")
+
+    worksheet.addRows(data)
+
+    const buffer = await workbook.xlsx.writeBuffer()
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = "sacco-savings.xlsx"
+    a.click()
+    window.URL.revokeObjectURL(url)
+
     toast.success("Savings exported to Excel")
   }
 
   return (
     <div className="space-y-6">
-
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Savings</h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <p className="mt-1 text-sm text-muted-foreground">
             {stats.totalAccounts} savings accounts
           </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleExport}>
-            <Download className="h-4 w-4 mr-2" />
+            <Download className="mr-2 h-4 w-4" />
             Export Excel
           </Button>
           <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
+            <Plus className="mr-2 h-4 w-4" />
             New Account
           </Button>
         </div>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
         {[
-          { title: "Total Savings", value: formatUGX(stats.totalBalance), description: "All accounts", icon: PiggyBank, accentColor: "#10b981" },
-          { title: "Total Accounts", value: stats.totalAccounts, description: "Savings accounts", icon: Users, accentColor: "#3b82f6" },
-          { title: "Average Balance", value: formatUGX(stats.avgBalance), description: "Per account", icon: TrendingUp, accentColor: "#a855f7" },
-          { title: "Locked", value: stats.lockedAccounts, description: "Locked accounts", icon: Lock, accentColor: "#f97316" },
-          { title: "Regular", value: stats.regularAccounts, description: "Active accounts", icon: Unlock, accentColor: "#14b8a6" },
-          { title: "Fixed", value: stats.fixedAccounts, description: "Fixed deposits", icon: PiggyBank, accentColor: "#eab308" },
+          {
+            title: "Total Savings",
+            value: formatUGX(stats.totalBalance),
+            description: "All accounts",
+            icon: PiggyBank,
+            accentColor: "#10b981",
+          },
+          {
+            title: "Total Accounts",
+            value: stats.totalAccounts,
+            description: "Savings accounts",
+            icon: Users,
+            accentColor: "#3b82f6",
+          },
+          {
+            title: "Average Balance",
+            value: formatUGX(stats.avgBalance),
+            description: "Per account",
+            icon: TrendingUp,
+            accentColor: "#a855f7",
+          },
+          {
+            title: "Locked",
+            value: stats.lockedAccounts,
+            description: "Locked accounts",
+            icon: Lock,
+            accentColor: "#f97316",
+          },
+          {
+            title: "Regular",
+            value: stats.regularAccounts,
+            description: "Active accounts",
+            icon: Unlock,
+            accentColor: "#14b8a6",
+          },
+          {
+            title: "Fixed",
+            value: stats.fixedAccounts,
+            description: "Fixed deposits",
+            icon: PiggyBank,
+            accentColor: "#eab308",
+          },
         ].map((card, i) => (
           <div
             key={card.title}
-            className="relative bg-card border border-border rounded overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 group"
+            className="group relative overflow-hidden rounded border border-border bg-card shadow-sm transition-all duration-300 hover:shadow-md"
           >
             {/* Left accent bar */}
 
             {/* Subtle tinted background on hover */}
             <div
-              className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-2xl"
-              style={{ background: `radial-gradient(ellipse at top left, ${card.accentColor}08, transparent 70%)` }}
+              className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+              style={{
+                background: `radial-gradient(ellipse at top left, ${card.accentColor}08, transparent 70%)`,
+              }}
             />
 
             <div className="relative px-5 pt-4 pb-4">
               {/* Top row: title + icon */}
-              <div className="flex items-start justify-between mb-3">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest leading-none">
+              <div className="mb-3 flex items-start justify-between">
+                <p className="text-xs leading-none font-semibold tracking-widest text-muted-foreground uppercase">
                   {card.title}
                 </p>
                 <div
-                  className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl"
                   style={{ background: `${card.accentColor}18` }}
                 >
                   <card.icon
@@ -194,38 +256,45 @@ export function SavingsClient({
               </div>
 
               {/* Value */}
-              <p className="text-[1.6rem] font-bold text-foreground tracking-tight leading-none mb-3 tabular-nums">
+              <p className="mb-3 text-[1.6rem] leading-none font-bold tracking-tight text-foreground tabular-nums">
                 {card.value}
               </p>
 
               {/* Description */}
-              <p className="text-xs text-muted-foreground">{card.description}</p>
+              <p className="text-xs text-muted-foreground">
+                {card.description}
+              </p>
             </div>
 
             {/* Bottom accent line */}
             <div
-              className="absolute bottom-0 left-3 right-3 h-px opacity-20"
-              style={{ background: `linear-gradient(to right, transparent, ${card.accentColor}, transparent)` }}
+              className="absolute right-3 bottom-0 left-3 h-px opacity-20"
+              style={{
+                background: `linear-gradient(to right, transparent, ${card.accentColor}, transparent)`,
+              }}
             />
           </div>
         ))}
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="text-base">Top Savers</CardTitle>
           </CardHeader>
           <CardContent>
             {topSaversData.length === 0 ? (
-              <div className="h-[220px] flex items-center justify-center text-muted-foreground text-sm">
+              <div className="flex h-[220px] items-center justify-center text-sm text-muted-foreground">
                 No data yet
               </div>
             ) : (
               <ChartContainer config={chartConfig} className="h-[220px] w-full">
                 <BarChart data={topSaversData} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    className="stroke-muted"
+                  />
                   <XAxis
                     type="number"
                     tickLine={false}
@@ -270,9 +339,9 @@ export function SavingsClient({
       </div>
 
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <div className="flex flex-col flex-wrap items-start justify-between gap-3 sm:flex-row sm:items-center">
+        <div className="relative min-w-64 flex-1">
+          <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search member, account number..."
             className="pl-9"
@@ -281,7 +350,7 @@ export function SavingsClient({
           />
         </div>
         <div className="flex items-center gap-2">
-          <SlidersHorizontal className="h-4 w-4 text-muted-foreground shrink-0" />
+          <SlidersHorizontal className="h-4 w-4 shrink-0 text-muted-foreground" />
           <Select value={typeFilter} onValueChange={setTypeFilter}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Type" />
@@ -306,10 +375,7 @@ export function SavingsClient({
       </div>
 
       {/* Table */}
-      <SavingsTable
-        accounts={filtered}
-        activeLoans={activeLoans}
-      />
+      <SavingsTable accounts={filtered} activeLoans={activeLoans} />
 
       {/* Create Account Dialog */}
       <CreateAccountDialog
