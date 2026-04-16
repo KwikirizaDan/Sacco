@@ -20,6 +20,10 @@ const SESSION_OPTIONS = {
 
 export async function POST(req: Request) {
   try {
+    if (!process.env.SESSION_SECRET) {
+      throw new Error("SESSION_SECRET environment variable is not set")
+    }
+
     const { email, password } = await req.json()
     if (!email || !password)
       return NextResponse.json(
