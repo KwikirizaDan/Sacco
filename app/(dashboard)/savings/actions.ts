@@ -31,6 +31,14 @@ export async function createSavingsAccountAction(
     const user = await getCurrentUser()
     if (!user) return { error: "Not authenticated." }
 
+    // Admin, cashier, and field agent can create savings accounts
+    if (!["admin", "cashier", "field_agent"].includes(user.role)) {
+      console.log(
+        `Permission denied: User ${user.email} (role: ${user.role}) attempted to create savings account`
+      )
+      return { error: "You don't have permission to create savings accounts" }
+    }
+
     const member_id = formData.get("member_id") as string
     const category_id = formData.get("category_id") as string
     const account_type = formData.get("account_type") as string
@@ -117,6 +125,16 @@ export async function depositAction(
     const user = await getCurrentUser()
     if (!user) return { error: "Not authenticated." }
 
+    // Admin, cashier, and field agent can deposit to savings
+    if (!["admin", "cashier", "field_agent"].includes(user.role)) {
+      console.log(
+        `Permission denied: User ${user.email} (role: ${user.role}) attempted to deposit to savings`
+      )
+      return {
+        error: "You don't have permission to deposit to savings accounts",
+      }
+    }
+
     const account_id = formData.get("account_id") as string
     const amount = parseInt(formData.get("amount") as string) * 100
     const narration = formData.get("narration") as string
@@ -191,6 +209,16 @@ export async function withdrawAction(
   try {
     const user = await getCurrentUser()
     if (!user) return { error: "Not authenticated." }
+
+    // Admin, cashier, and field agent can withdraw from savings
+    if (!["admin", "cashier", "field_agent"].includes(user.role)) {
+      console.log(
+        `Permission denied: User ${user.email} (role: ${user.role}) attempted to withdraw from savings`
+      )
+      return {
+        error: "You don't have permission to withdraw from savings accounts",
+      }
+    }
 
     const account_id = formData.get("account_id") as string
     const amount = parseInt(formData.get("amount") as string) * 100
@@ -286,6 +314,17 @@ export async function lockAccountAction(
   formData: FormData
 ): Promise<SavingsFormState> {
   try {
+    const user = await getCurrentUser()
+    if (!user) return { error: "Not authenticated." }
+
+    // Only admin can lock savings accounts
+    if (user.role !== "admin") {
+      console.log(
+        `Permission denied: User ${user.email} (role: ${user.role}) attempted to lock savings account`
+      )
+      return { error: "You don't have permission to lock savings accounts" }
+    }
+
     const account_id = formData.get("account_id") as string
     const lock_until = formData.get("lock_until") as string
     const lock_reason = formData.get("lock_reason") as string
@@ -337,6 +376,17 @@ export async function unlockAccountAction(
   id: string
 ): Promise<SavingsFormState> {
   try {
+    const user = await getCurrentUser()
+    if (!user) return { error: "Not authenticated." }
+
+    // Only admin can unlock savings accounts
+    if (user.role !== "admin") {
+      console.log(
+        `Permission denied: User ${user.email} (role: ${user.role}) attempted to unlock savings account`
+      )
+      return { error: "You don't have permission to unlock savings accounts" }
+    }
+
     const [account] = await smartDb
       .select(savingsAccounts)
       .where(eq(savingsAccounts.id, id))
@@ -385,6 +435,14 @@ export async function trimToLoanAction(
   try {
     const user = await getCurrentUser()
     if (!user) return { error: "Not authenticated." }
+
+    // Admin, cashier, and field agent can trim savings to loans
+    if (!["admin", "cashier", "field_agent"].includes(user.role)) {
+      console.log(
+        `Permission denied: User ${user.email} (role: ${user.role}) attempted to trim savings to loan`
+      )
+      return { error: "You don't have permission to trim savings to loans" }
+    }
 
     const account_id = formData.get("account_id") as string
     const loan_id = formData.get("loan_id") as string
@@ -582,6 +640,17 @@ export async function deleteSavingsAccountAction(
   id: string
 ): Promise<SavingsFormState> {
   try {
+    const user = await getCurrentUser()
+    if (!user) return { error: "Not authenticated." }
+
+    // Only admin can delete savings accounts
+    if (user.role !== "admin") {
+      console.log(
+        `Permission denied: User ${user.email} (role: ${user.role}) attempted to delete savings account`
+      )
+      return { error: "You don't have permission to delete savings accounts" }
+    }
+
     const [account] = await smartDb
       .select(savingsAccounts)
       .where(eq(savingsAccounts.id, id))
@@ -608,6 +677,17 @@ export async function updateSavingsAction(
   }
 ): Promise<SavingsFormState> {
   try {
+    const user = await getCurrentUser()
+    if (!user) return { error: "Not authenticated." }
+
+    // Only admin can update savings accounts
+    if (user.role !== "admin") {
+      console.log(
+        `Permission denied: User ${user.email} (role: ${user.role}) attempted to update savings account`
+      )
+      return { error: "You don't have permission to update savings accounts" }
+    }
+
     const [account] = await smartDb
       .select(savingsAccounts)
       .where(eq(savingsAccounts.id, id))

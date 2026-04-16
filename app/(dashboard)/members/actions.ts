@@ -57,7 +57,8 @@ const memberSchema = z.object({
   photo_url: z
     .string()
     .optional()
-    .transform((v) => (v === "" ? undefined : v)),
+    .nullable()
+    .transform((v) => (!v || v === "" ? null : v)),
 })
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -109,6 +110,14 @@ export async function addMemberAction(
       return { error: "Unauthorized" }
     }
 
+    // Admin, cashier, and field agent can add members
+    if (!["admin", "cashier", "field_agent"].includes(user.role)) {
+      console.log(
+        `Permission denied: User ${user.email} (role: ${user.role}) attempted to add a member`
+      )
+      return { error: "You don't have permission to add members" }
+    }
+
     const member_code = await generateMemberCode(user.saccoId)
 
     // Handle photo upload
@@ -128,7 +137,7 @@ export async function addMemberAction(
       next_of_kin: formData.get("next_of_kin") as string,
       next_of_kin_phone: formData.get("next_of_kin_phone") as string,
       status: (formData.get("status") as string) || "active",
-      photo_url: photo_url,
+      photo_url: photo_url || undefined,
     }
 
     const parsed = memberSchema.safeParse(raw)
@@ -182,6 +191,16 @@ export async function editMemberAction(
     const user = await getCurrentUser()
     if (!user) {
       return { error: "Unauthorized" }
+    }
+
+    // Only admin can edit members
+    if (user.role !== "admin") {
+      return { error: "You don't have permission to edit members" }
+    }
+
+    // Only admin can edit members
+    if (user.role !== "admin") {
+      return { error: "You don't have permission to edit members" }
     }
 
     // Get existing member to check current photo
@@ -272,6 +291,16 @@ export async function editMemberAction(
 
 export async function deleteMemberAction(id: string): Promise<MemberFormState> {
   try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return { error: "Unauthorized" }
+    }
+
+    // Only admin can delete members
+    if (user.role !== "admin") {
+      return { error: "You don't have permission to delete members" }
+    }
+
     const [existing] = await smartDb.select(members).where(eq(members.id, id))
 
     if (!existing) return { error: "Member not found." }
@@ -327,6 +356,16 @@ export async function updateMemberStatusAction(
   status: "active" | "suspended" | "exited"
 ): Promise<MemberFormState> {
   try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return { error: "Unauthorized" }
+    }
+
+    // Only admin can update member status
+    if (user.role !== "admin") {
+      return { error: "You don't have permission to update member status" }
+    }
+
     const [existing] = await smartDb.select(members).where(eq(members.id, id))
 
     if (!existing) return { error: "Member not found." }
@@ -367,6 +406,11 @@ export async function sendMemberSmsAction(
     const user = await getCurrentUser()
     if (!user) {
       return { error: "Unauthorized" }
+    }
+
+    // Only admin and cashier can send SMS to members
+    if (!["admin", "cashier"].includes(user.role)) {
+      return { error: "You don't have permission to send SMS to members" }
     }
 
     const [member] = await smartDb
@@ -637,6 +681,11 @@ export async function importMembersAction(
   try {
     const user = await getCurrentUser()
     if (!user) return { error: "Unauthorized." }
+
+    // Only admin can import members
+    if (user.role !== "admin") {
+      return { error: "You don't have permission to import members" }
+    }
 
     let imported = 0
 
